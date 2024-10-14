@@ -1,14 +1,15 @@
 package com.sharedschool.backend.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.sharedschool.backend.entity.FollowsInfo;
+import com.sharedschool.backend.typehandler.FollowsInfo;
 import com.sharedschool.backend.entity.UserFollows;
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Result;
 import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 
-
+@Mapper
 public interface FollowsMapper extends BaseMapper<UserFollows> {
     @Select("SELECT uf.follower_id, u.user_name, u.user_avatar, u.user_intro " +
             "FROM user_follows uf " +

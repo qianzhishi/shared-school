@@ -1,4 +1,4 @@
-package com.sharedschool.backend.entity;
+package com.sharedschool.backend.typehandler;
 
 import lombok.Data;
 

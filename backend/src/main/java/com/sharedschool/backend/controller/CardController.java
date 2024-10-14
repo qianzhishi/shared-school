@@ -4,8 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.sharedschool.backend.entity.Card;
+import com.sharedschool.backend.entity.User;
 import com.sharedschool.backend.response.ApiResponse;
 import com.sharedschool.backend.service.CardService;
+import com.sharedschool.backend.typehandler.CardInfo;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -53,6 +55,28 @@ public class CardController {
             return ApiResponse.success(pageInfo);
         }
         return ApiResponse.fail();
+    }
+
+    @GetMapping("/frontend/content/list")
+    public ApiResponse<PageInfo<CardInfo>> getCardList(
+            @RequestParam Long userId,
+            @RequestParam int page,
+            @RequestParam int size,
+            @RequestParam int type
+    ) {
+        PageHelper.startPage(page, size);
+        List<CardInfo> cardInfoList = cardService.getCardList(userId, type);
+        PageInfo<CardInfo> pageInfo = new PageInfo<>(cardInfoList);
+        return ApiResponse.success(pageInfo);
+
+    }
+
+    @GetMapping("/frontend/user/content")
+    public ApiResponse<List<Card>> getUserCardList(@RequestParam Long userId) {
+        QueryWrapper<Card> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_id", userId);
+        List<Card> cardList = cardService.list(queryWrapper);
+        return ApiResponse.success(cardList);
     }
 
     @PostMapping("/frontend/upload/post")

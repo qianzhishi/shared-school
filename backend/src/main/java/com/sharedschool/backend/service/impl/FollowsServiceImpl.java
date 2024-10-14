@@ -2,7 +2,7 @@ package com.sharedschool.backend.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
-import com.sharedschool.backend.entity.FollowsInfo;
+import com.sharedschool.backend.typehandler.FollowsInfo;
 import com.sharedschool.backend.entity.UserFollows;
 import com.sharedschool.backend.mapper.FollowsMapper;
 import com.sharedschool.backend.service.FollowsService;
