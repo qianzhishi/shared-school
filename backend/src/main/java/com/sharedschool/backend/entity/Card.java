@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import jdk.jfr.ContentType;
 import lombok.Data;
 
 import java.util.Date;
@@ -24,23 +25,17 @@ public class Card {
     @TableField("card_title")
     private String title;
     @TableField(value = "card_content",typeHandler = JacksonTypeHandler.class)
-    private Content content;
+    public String content;
     @TableField("card_date")
     private Date date;
     @TableField("card_view_number")
-    private int viewNum = 0;
+    private Long viewNum = 0L;
     @TableField("card_like_number")
-    private int likeNum = 0;
+    private Long likeNum = 0L;
     @TableField("card_comment_number")
-    private int commentNum = 0;
+    private Long commentNum = 0L;
     @TableField(value = "card_images",typeHandler = JacksonTypeHandler.class)
     private List<String> images;
 
-    //内容对象
-    @Data
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    class Content {
-        private String content;
-    }
 }
 

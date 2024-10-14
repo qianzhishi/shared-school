@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -54,4 +55,24 @@ public class CardController {
         return ApiResponse.fail();
     }
 
+    @PostMapping("/frontend/upload/post")
+    public ApiResponse<Void> addCard(
+            @RequestParam Long userId,
+            @RequestParam int type,
+            @RequestParam String title,
+            @RequestParam String content,
+            @RequestParam List<String> images
+
+    ) {
+        Card card = new Card();
+        card.setUserId(userId);
+        card.setType(type);
+        card.setTitle(title);
+        card.setContent(content);
+        Date currentDate = new Date();
+        card.setDate(currentDate);
+        card.setImages(images);
+        cardService.save(card);
+        return ApiResponse.success();
+    }
 }

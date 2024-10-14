@@ -49,7 +49,7 @@ public class UserController {
     }
 
     @PutMapping("/frontend/user/edit")
-    public ApiResponse editUser(
+    public ApiResponse<Void> editUser(
             @RequestParam Long id,
             @RequestParam String username,
             @RequestParam int gender,
@@ -82,7 +82,7 @@ public class UserController {
     }
 
     @PutMapping("/frontend/user/editPwd")
-    public ApiResponse editPwd(@RequestParam Long id, @RequestParam String oldPassword,@RequestParam String newPassword) {
+    public ApiResponse<Void> editPwd(@RequestParam Long id, @RequestParam String oldPassword,@RequestParam String newPassword) {
         User user = userService.getById(id);
         if (user != null && user.getPassword().equals(oldPassword)) {
             user.setPassword(newPassword);
@@ -94,7 +94,7 @@ public class UserController {
     }
 
     @PutMapping("/frontend/user/setPrivacy")
-    public ApiResponse setPrivacy(
+    public ApiResponse<Void> setPrivacy(
             @RequestParam Long id,
             @RequestParam int showPosts,
             @RequestParam int  showComments,
@@ -133,7 +133,7 @@ public class UserController {
 
     }
     @DeleteMapping("/backend/user/delete")
-    public ApiResponse deleteUser(@RequestParam Long id){
+    public ApiResponse<Void> deleteUser(@RequestParam Long id){
         userService.removeById(id);
         return ApiResponse.success();
     }
