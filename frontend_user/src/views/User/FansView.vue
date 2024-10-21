@@ -3,33 +3,36 @@
     import { computed, onMounted,ref } from 'vue'
     import { ElMessage, ElMessageBox } from 'element-plus'
     import api from '@/api/user'
-    import { useRoute,useRouter } from "vue-router";
+    import { useRoute, useRouter } from "vue-router";
+    import { useUserStore } from '@/stores/user';
+    
+    const userStore = useUserStore();
 
     const route = useRoute()
     const router = useRouter()
 
-    // 本地数据存储
-    const store = window.localStorage
-
     // 当前访问者的用户id
-    const visitorId = Number(store.getItem('userId'))
+    const visitorId = Number(localStorage.getItem('userId'))
     // 当前被访问用户的id
     const visitedId = ref(Number(route.query.id) || visitorId)
     // 记录用户是否访问自己的个人中心
     const isOwn = computed(()=>{
         return (visitedId.value == visitorId ? true : false)
-    })
+    }) 
 
     // 记录被访问用户的粉丝列表查看权限
     const fansFlag = ref(true)
+    if(!isOwn.value)
+        fansFlag.value = userStore.showFans ? true : false
+
 
     // 记录当前粉丝列表是否有数据
     let dataFlag = ref(true)
 
     type fansData = { 
-        id: string, 
+        userId: string, 
         avatar:string, 
-        name: string, 
+        username: string, 
         intro:string, 
         isFollowed: boolean
     }
@@ -38,81 +41,72 @@
 
    // 获取用户粉丝列表
    const getFans = async()=> {
-        api.fansApi({id: visitedId.value})
-        .then((res: any) => {
-            if(res.fans != null)
-            {
-                dataFlag.value = true
-                const neededData = res.fans.map((item:any) => ({
-                    id: item.id,
-                    name: item.name, 
-                    avatar: item.avatar,
-                    bio: item.intro,
-                    isFollowed: false
-                }))
-                fansList.value = neededData
-                getisFollwed()
-            }
-            else
-                dataFlag.value = false
-        })
-        .catch((error: any) => {
-            console.log(error)
+        api.fansApi({userId: visitedId.value})
+            .then((res: any) => {
+                if (res.code == 200)
+                {
+                    if (res.data && res.data.length > 0)
+                    {
+                        dataFlag.value = true
+                        const neededData = res.data.map((item:any) => ({
+                            userId: item.userId,
+                            username: item.username, 
+                            avatar: item.avatar,
+                            intro: item.intro,
+                            isFollowed: false
+                        }))
+                        fansList.value = neededData
+                        getIsFollwed()
+                    }
+                    else
+                        dataFlag.value = false
+                }
         })
     }    
 
     // 判断当前登录用户是否关注此人的粉丝列表里的用户
-    const  getisFollwed = async () => {
-        if(store.getItem('isLogin') == 'false')
+    const  getIsFollwed = async () => {
+        if(localStorage.getItem('isLogin') == 'false')
             return  
-        api.subsApi({id: visitorId})
-        .then((res) => {
-            if(res.data.subs.length > 0)
-            {
-                const neededData = res.data.subs.map((item:any) => ({
-                    id: item.id,
-                }))
-                fansList.value.forEach(fansUser => {
-                    if (neededData.some((data: { id: any; }) => data.id == fansUser.id)) {
-                        fansUser.isFollowed = true;
+        api.subsApi({userId: visitorId})
+            .then((res: any) => {
+                if (res.code == 200)
+                {
+                    if(res.data && res.data.length > 0)
+                    {
+                        const neededData = res.data.map((item:any) => ({
+                            id: item.userId,
+                        }))
+                        fansList.value.forEach(fansUser => {
+                            if (neededData.some((data: { id: any; }) => data.id == fansUser.userId)) {
+                                fansUser.isFollowed = true;
+                            }
+                        })
+                        
                     }
-                })
-                
-            }
-        })
-        .catch((error: any) => {
-            console.log(error)
+                }
         })
     }
 
-    // 获取用户隐私设置
-    const getSettings = async()=> {
-        api.settingsApi({id: visitedId.value})
-        .then((res: any) => {
-            fansFlag.value = res.fans ? true : false
-        })
-    } 
-
-
      // 关注用户
      const follow = (item:fansData)=> {
-        if(store.getItem('isLogin') == 'false')
+        if(localStorage.getItem('isLogin') == 'false')
         {
             ElMessage.info('请先登录后再进行此操作！')
             return            
         }
-        if(visitorId == Number(item.id))
+        if(visitorId == Number(item.userId))
         {
             ElMessage.info('不能关注自己哦！')
             return             
         }
         api.subscribeApi({
-            id: Number(item.id),
-            user: visitorId,
+            focusedId: Number(item.userId),
+            focusId: visitorId,
             state: 0
         })
         .then((res: any) => {
-            if(res.code) {
+            if(res.code == 200) {
                 ElMessage.success('关注成功')
                 item.isFollowed = true
             }
@@ -132,12 +126,12 @@
         )
         .then(() => {
             api.subscribeApi({
-                id: Number(item.id),
-                user: visitorId,
+                focusedId: Number(item.userId),
+                focusId: visitorId,
                 state: 1
             })
             .then((res: any) => {
-                if(res.code) {
+                if(res.code == 200) {
                     ElMessage.success('取消成功')
                     item.isFollowed = false
                 }
@@ -146,9 +140,7 @@
     }
     
     onMounted(async ()=>{
-        if(!isOwn.value)
-            await getSettings()
-        if(fansFlag.value) {
+        if(fansFlag.value || isOwn.value) {
             await getFans()
         }
     })
@@ -171,18 +163,18 @@
         </div>
 
         <el-scrollbar class="scrollbar" v-else>
-                <div v-for="item in fansList" :key="item.id.toString" class="item">
+                <div v-for="item in fansList" :key="item.userId.toString" class="item">
                 <el-avatar
                     :src="item.avatar"
                     :size="60"
                     class="avatar"
-                    @click="router.push({ path: '/user', query: { id: item.id } })"
+                    @click="router.push({ path: '/user', query: { id: item.userId } })"
                 />
                 <div class="box">
                     <el-text 
                     class="name" 
-                    @click="router.push({ path: '/user', query: { id: item.id } })">
-                        {{item.name}}
+                    @click="router.push({ path: '/user', query: { id: item.userId } })">
+                        {{item.username}}
                     </el-text>
 
                     <el-text class="bio" 

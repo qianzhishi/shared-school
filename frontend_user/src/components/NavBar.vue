@@ -4,9 +4,9 @@
     import { useRouter } from 'vue-router';
     import { UserFilled } from '@element-plus/icons-vue'
     import { ElMessage } from 'element-plus'
-
-    // 本地数据存储
-    const store = window.localStorage;
+    import { useUserStore } from '@/stores/user';
+    
+    const userStore = useUserStore();
 
     // 路由
     const router = useRouter();
@@ -19,7 +19,7 @@
 
     const type = ref('0');
 
-    const userAvatar = ref(store.getItem('userAvatar'));
+    const userAvatar = ref(localStorage.getItem('userAvatar'))
 
     // 路由跳转
     function redirect(url: string) {
@@ -28,8 +28,8 @@
 
     // 转至个人主页
     function toUser() {
-        if (store.getItem('isLogin') === 'true') {
-            router.push({ path: '/user', query: { id: Number(store.getItem('userId')) } })
+        if (localStorage.getItem('isLogin') === 'true') {
+            router.push({ path: '/user', query: { id: localStorage.getItem('userId') } })
         }
         else {
             // 消息提示
@@ -42,16 +42,12 @@
 
     // 转至投稿
     function toUpload() {
-        if (store.getItem('isLogin') == 'true') {
+        if (localStorage.getItem('isLogin') == 'true') {
             redirect('/upload')
         }
         else {
-              // 消息提示
-              ElMessage({
-                  message: '您尚未登录！',
-                  type: 'error',
-              })
-            
+            ElMessage.error('您尚未登录！')
+           
         }
     }
 
@@ -62,22 +58,19 @@
 
     // 退出登录
     function logout() {
-        store.setItem('isLogin', 'false');
-        store.setItem('userId', '0');
-        store.setItem('userAvatar', '');
-        userAvatar.value = store.getItem('userAvatar');
-        setLoginState();
-
-        // 消息提示
-        ElMessage({
-            message: '您已退出登录！',
-            type: 'success',
-        })
-    }
+            userStore.logout();
+            localStorage.setItem('isLogin', 'false');
+            localStorage.setItem('userId', '0');
+            localStorage.setItem('userAvatar', 'https://small-event-bucket1.oss-cn-hangzhou.aliyuncs.com/avatarDefault.jpg');
+            userAvatar.value = 'https://small-event-bucket1.oss-cn-hangzhou.aliyuncs.com/avatarDefault.jpg';
+            setLoginState();
+            router.push('/home');
+            ElMessage.success('您已退出登录！')
+        }
 
     // 获取登录状态
     function setLoginState() {
-        if (store.getItem('isLogin') == 'true') {
+        if (localStorage.getItem('isLogin') == 'true') {
             isLogin.value = true;
         }
         else {
@@ -85,19 +78,18 @@
         }
     }
 
+    // 转至动态
     function goNews() {
-        if (store.getItem('isLogin') == 'false') {
-            // 消息提示
-            ElMessage({
-                message: '您尚未登录！',
-                type: 'error',
-            })
+            if (localStorage.getItem('isLogin') == 'true') {
+                router.push('/friend-news')
+            }
+            else {
+                ElMessage.error('您尚未登录！')
+            }
         }
-        else {
-            redirect('/friend-news');
-        }
-    }
 
+
+    // 转至搜索
     function search() {
         if (input.value !== '' && typeof type.value !== 'undefined') {
             router.push({ path: '/search', query: { input: input.value, type: type.value } });

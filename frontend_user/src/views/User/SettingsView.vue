@@ -3,19 +3,19 @@
     import { onMounted,reactive,ref } from 'vue'
     import api from '@/api/user'
     import router from '@/router';
-
-    // 本地数据存储
-    const store = window.localStorage
+    import { useUserStore } from '@/stores/user';
+    
+    const userStore = useUserStore();
     // 当前登录用户的id
-    const userId = Number(store.getItem('userId'))
+    const userId = Number(localStorage.getItem('userId'))
 
     // 保存被访问用户的个人空间的权限数据
     const privilegesData = reactive({
         id: userId,
-        post: true,
-        comment: true,
-        subs: true,
-        fans: true
+        post: userStore.showPosts ? true : false,
+        comment: userStore.showComments ? true : false,
+        subs: userStore.showLikes ? true : false,
+        fans: userStore.showFans ? true : false
     })
 
     const dialogFormVisible = ref(false)
@@ -24,32 +24,21 @@
 
     const form = reactive({
             oldPassword: '',
-            password: '',
+            newPassword: '',
             confirmPassword: '',
         })
 
-    // 获取用户隐私设置
-    const getSettings = ()=> {
-        api.settingsApi({id: userId})
-        .then((res: any) => {
-            privilegesData.post = res.post ? true : false
-            privilegesData.comment = res.comment ? true : false
-            privilegesData.subs = res.subs ? true : false
-            privilegesData.fans = res.fans ? true : false
-        })
-    }
-
     // 更新用户隐私设置
     const updatedSettings = ()=> {
-        api.setApi({
+        api.setPrivacyApi({
             id: userId,
-            post: privilegesData.post ? 1 : 0,
-            comment: privilegesData.comment ? 1 : 0,
-            subs: privilegesData.subs ? 1 : 0,
-            fans: privilegesData.fans ? 1 : 0,
+            showPosts: privilegesData.post ? 1 : 0,
+            showComments: privilegesData.comment ? 1 : 0,
+            showLikes: privilegesData.subs ? 1 : 0,
+            showFans: privilegesData.fans ? 1 : 0,
         })
         .then((res: any) => {
-            if(res.code == 1)
+            if(res.code == 200)
                 ElMessage.success('更改成功')
         })
     }
@@ -58,31 +47,28 @@
     const editPwd = (oldValue:string, newValue:string)=> {
         api.editPwdApi({
             id: userId,
-            oldpwd: oldValue,
-            newpwd: newValue
+            oldPassword: oldValue,
+            newPassword: newValue
         })
         .then((res: any) => {
-            if(res.code == 1)
+            if(res.code == 200)
             {
                 ElMessage.success('更改成功')
-                store.setItem('isLogin', 'false')
+                localStorage.setItem('isLogin', 'false')
                 router.push('/login')                
             }
-        })
-        .catch((error: any) => {
-            console.log(error)
         })
     }
 
     function setPassword() {
-        if(form.password.length < 8 || form.password.length > 16 )
+        if(form.newPassword.length < 8 || form.newPassword.length > 16 )
         {
             ElMessage.error('错误, 密码需8~16位! ')
         }
-        else if(form.password == form.confirmPassword) 
+        else if(form.newPassword == form.confirmPassword) 
         {
             dialogFormVisible.value = false
-            editPwd(form.oldPassword,form.password)
+            editPwd(form.oldPassword,form.newPassword)
         }
         else 
         {
@@ -91,7 +77,7 @@
     }
 
     onMounted(()=>{
-        getSettings()
+        userStore.fetchUserInfo(userId)
     })
 
 </script>
@@ -170,7 +156,7 @@
                 </el-form-item>
                 <el-form-item label="密码" :label-width="formLabelWidth">
                     <el-input 
-                    v-model.lazy="form.password" 
+                    v-model.lazy="form.newPassword" 
                     placeholder="Please input password"
                     show-password/>
                 </el-form-item>

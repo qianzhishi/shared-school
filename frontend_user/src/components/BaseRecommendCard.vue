@@ -7,9 +7,6 @@
     import { Picture as IconPicture } from '@element-plus/icons-vue'
     import api from '@/api/content'
 
-    // 本地仓库存储
-    const store = window.localStorage;
-
     // 路由
     const router = useRouter();
 
@@ -72,58 +69,49 @@
     }
 
     function likeCheck() {
-        if (store.getItem('isLogin') == 'true') {
-            like();
+        if (localStorage.getItem('isLogin') == 'true') {
+            likePost();
         }
         else {
             ElMessage.error('您尚未登录，暂不支持该操作！')
         }
     }
 
-    // 点赞帖子
-    const like = async()=> {
-        await api.likeApi({
-            id: cardId.value,
-            user: Number(store.getItem('userId')),
-            state: boolTranslate(isLike.value),
-            type: 0,
-        })
-        .then((res: any) => {
-            console.log(res)
-            // 状态码
-            let code = res.code;
-            if (code == 1) {
-                // 消息提示
-                if (isLike.value) {
-                    ElMessage.success("取消点赞成功！")
-                }
-                else {
-                    ElMessage.success("点赞成功！")
-                }
-                isLike.value = !isLike.value;
-                likeCount.value = res.count;
+  // 点赞帖子
+  const likePost = async()=> {
+    await api.likePostApi({
+        cardId: cardId.value,
+        userId: Number(localStorage.getItem('userId')),
+        state: boolTranslate(isLike.value)
+    })
+    .then((res: any) => {
+        if (res.code == 200) {
+            // 消息提示
+            if (isLike.value) {
+                ElMessage.success("取消点赞成功！")
             }
             else {
-                let msg = res.data.msg;
-                // 消息提示
-                ElMessage.error(msg)
+                ElMessage.success("点赞成功！")
             }
-        })
-    }
+            isLike.value = !isLike.value;
+            likeCount.value = res.data;
+        }
+    })
+  }
 
     onMounted(() => {
-        cardId.value = postInfo['info'].card_id;
+        cardId.value = postInfo['info'].cardId;
         cardType.value = postInfo['info'].type;
-        userId.value = postInfo['info'].author_id;
-        userAvatar.value = postInfo['info'].author_avatar;
-        userName.value = nameTranslate(postInfo['info'].author_name);
+        userId.value = postInfo['info'].userId;
+        userAvatar.value = postInfo['info'].avatar;
+        userName.value = nameTranslate(postInfo['info'].name);
         postTitle.value = postInfo['info'].title;
         postContent.value = postInfo['info'].content;
-        readCount.value = postInfo['info'].num_read;
-        commentCount.value = postInfo['info'].num_comment;
-        likeCount.value = postInfo['info'].num_like;
+        readCount.value = postInfo['info'].viewNum;
+        commentCount.value = postInfo['info'].commentNum;
+        likeCount.value = postInfo['info'].likeNum;
         updateTime.value = postInfo['info'].time;
-        isLike.value = flagTranslate(postInfo['info'].flag);
+        isLike.value = flagTranslate(postInfo['info'].likeFlag);
         postImages.value = postInfo['info'].images;
     })
 </script>
@@ -141,7 +129,7 @@
                 <label class="user-name">{{ userName }}</label>
             </div>
             <div>
-                <label class="update-time">更新时间：{{ updateTime }}</label>
+                <label class="update-time">更新时间：{{ new Date(updateTime as string).toLocaleString() }}</label>
             </div>
         </div>
         <div class="content">

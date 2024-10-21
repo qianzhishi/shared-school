@@ -10,7 +10,7 @@
     import { ElMessage } from 'element-plus'
     import type {detailInfo} from '@/types/types'
     import api from '@/api/content'
-
+    
     // 评论仓库
     const commentStore = useCommentStore();
 
@@ -18,11 +18,9 @@
     const route = useRoute()
     const router = useRouter();
 
-    // 本地数据存储
-    const store = window.localStorage;
 
     function toComment() {
-        if (store.getItem('isLogin') == 'true') {
+        if (localStorage.getItem('isLogin') == 'true') {
             commentStore.postCommentDiaglogInit(Number(postId.value));
         }
         else {
@@ -31,7 +29,7 @@
     }
 
     function likeCheck() {
-        if (store.getItem('isLogin') == 'true') {
+        if (localStorage.getItem('isLogin') == 'true') {
             like();
         }
         else {
@@ -40,31 +38,18 @@
     }
 
     // 帖子信息
-    const postDetail = ref<detailInfo>({
-        id: 1,
-        name: '用户名',
-        title: '标题',
-        avatar: '',
-        content: '暂无内容',
-        images: [],
-        num_like: 0,
-        num_read: 0,
-        num_comment: 0,
-        time: '',
-        list: [],
-        flag: 0,
-    });
-    const postId = ref<number>(0);
-    const authorId = ref<number>();
-    const authorAvatar = ref<string>();
-    const authorName = ref<string>();
-    const postContent = ref<string>();
-    const postImages = ref<Array<string>>();
-    const readCount = ref<number>(0);
-    const commentCount = ref<number>(0);
-    const likeCount = ref<number>(0);
-    const updateTime = ref<string>("2024/05/11 16:22:08");
-    const isLike = ref<boolean>(false);
+    const postDetail = ref<detailInfo>()
+    const postId = ref<number>(0)
+    const authorId = ref<number>()
+    const authorAvatar = ref<string>()
+    const authorName = ref<string>()
+    const postContent = ref<string>()
+    const postImages = ref<Array<string>>()
+    const readCount = ref<number>(0)
+    const commentCount = ref<number>(0)
+    const likeCount = ref<number>(0)
+    const updateTime = ref<string>("2024/05/11 16:22:08")
+    const isLike = ref<boolean>(false)
 
     // 前往修改页面
     function toPostEditor() {
@@ -73,7 +58,7 @@
 
     // 判断是否为自己的帖子
     function checkAuthor() {
-        if (store.userId == authorId.value) {
+        if (localStorage.userId == authorId.value) {
             return true;
         }
         else {
@@ -103,69 +88,48 @@
 
     // 删除帖子
     const deletePost = async()=> {
-        await api.deleteApi({id: postId.value})
+        await api.delPostApi({cardId: postId.value})
         .then((res: any) => {
-            console.log(res)
-            // 状态码
-            let code = res.code;
-            if (code == 1) {
-                // 消息提示
+            if (res.code == 200) {
                 ElMessage.success("删除成功！")
                 router.back()
-            }
-            else {
-                let msg = res.data.msg;
-                // 消息提示
-                ElMessage.error(msg)
             }
         })
     }
 
     // 评论
     const comment = async(type: number)=> {
-        let commentContent;
-        if (type == 0) {
+        let commentContent = '';
+        if (type == 1) {
             commentContent = commentStore.postContent;
         }
         else {
             commentContent = commentStore.commentContent;
         }
         await api.commentApi({
-            id: commentStore.objectId,
-            user: Number(store.getItem('userId')),
+            userId: Number(localStorage.getItem('userId')),
             content: commentContent,
-            father_id: commentStore.objectFather,            
+            fatherId: commentStore.fatherId,
+            type: type         
         })
         .then((res: any) => {
-            console.log(res)
-            // 状态码
-            let code = res.code;
-            if (code == 1) {
+            if (res.code == 200) {
                 // 消息提示
                 ElMessage.success("评论成功！")
-                commentCount.value = res.count;
-            }
-            else {
-                let msg = res.data.msg;
-                // 消息提示
-                ElMessage.error(msg)
+                commentCount.value = res.data;
             }
         })
     }
 
     // 点赞帖子
     const like = async()=> {
-        await api.likeApi({
-            id: postId.value,
-            user: Number(store.getItem('userId')),
+        await api.likePostApi({
+            cardId: postId.value,
+            userId: Number(localStorage.getItem('userId')),
             state: boolTranslate(isLike.value),
-            type: 0,
         })
         .then((res: any) => {
-            console.log(res)
-            // 状态码
-            let code = res.code;
-            if (code == 1) {
+            if (res.code == 200) {
                 // 消息提示
                 if (isLike.value) {
                     ElMessage.success("取消点赞成功！")
@@ -174,12 +138,7 @@
                     ElMessage.success("点赞成功！")
                 }
                 isLike.value = !isLike.value;
-                likeCount.value = res.count;
-            }
-            else {
-                let msg = res.data.msg;
-                // 消息提示
-                ElMessage.error(msg)
+                likeCount.value = res.data;
             }
       })
     }
@@ -187,39 +146,30 @@
     // 获取卡片信息
     const getPostInfo = async()=> {
         await api.detailApi({
-            user_id: Number(store.getItem('userId')),
-            card_id: Number(route.query.id)
+            userId: Number(localStorage.getItem('userId')),
+            cardId: Number(route.query.id)
         })
         .then((res: any) => {
-            console.log(res)
-            // 状态码
-            let code = res.code;
-            if (code == 1) {
+            if (res.code == 200) {
                 // 导入卡片信息
-                postDetail.value = res;
+                postDetail.value = res.data;
                 postId.value = Number(route.query['id']);
-                authorId.value = postDetail.value.id;
-                authorAvatar.value = postDetail.value.avatar;
-                authorName.value = postDetail.value.name;
-                postContent.value = postDetail.value.content;
-                postImages.value = postDetail.value.images;
-                readCount.value = postDetail.value.num_read;
-                commentCount.value = postDetail.value.num_comment;
-                likeCount.value = postDetail.value.num_like;
-                updateTime.value = postDetail.value.time;
-                isLike.value = flagTranslate(postDetail.value.flag);
-                console.log(postDetail.value)
-            }
-            else {
-                let msg = res.data.msg;
-                // 消息提示
-                ElMessage.error(msg)
+                authorId.value = res.data.cardInfo.id;
+                authorAvatar.value = res.data.avatar;
+                authorName.value = res.data.name;
+                postContent.value = res.data.cardInfo.content;
+                postImages.value = res.data.cardInfo.images;
+                readCount.value = res.data.cardInfo.viewNum;
+                commentCount.value = res.data.cardInfo.commentNum;
+                updateTime.value = res.data.cardInfo.date;
+                isLike.value = flagTranslate(res.data.likeFlag)
+                likeCount.value = res.data.cardInfo.likeNum;
             }
       })
     }
 
     onMounted(() => {
-        commentStore.postId = Number(route.query.id);
+        commentStore.fatherId = Number(route.query.id);
         getPostInfo();
     })
 </script>
@@ -266,7 +216,7 @@
                           </svg>
                           <label class="update-time">浏览：{{ readCount }}</label>
                       </div>
-                      <label class="update-time">更新时间：{{ updateTime }}</label>
+                      <label class="update-time">更新时间：{{ new Date(updateTime as string).toLocaleString() }}</label>
                   </div>
               </div>
               <!-- 帖子图片 -->
@@ -305,7 +255,7 @@
                                   <template #footer>
                                       <div class="dialog-footer">
                                           <el-button type="primary"
-                                              @click="comment(0); commentStore.postCommentDialogClose()">
+                                              @click="comment(1); commentStore.postCommentDialogClose()">
                                               提交评论
                                           </el-button>
                                       </div>
@@ -321,7 +271,7 @@
                                   <template #footer>
                                       <div class="dialog-footer">
                                           <el-button type="primary"
-                                              @click="comment(1); commentStore.commentCommentDialogClose()">
+                                              @click="comment(2); commentStore.commentCommentDialogClose()">
                                               提交评论
                                           </el-button>
                                       </div>
@@ -376,7 +326,7 @@
           </div>
           <!-- 评论区 -->
           <div class="comment-area">
-              <div v-for="(comment, index) in postDetail.list" :key="index">
+              <div v-for="(comment, index) in postDetail?.commentList || []" :key="index">
                   <Comment :info="comment" />
               </div>
               <div class="bottom-tip">

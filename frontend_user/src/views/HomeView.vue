@@ -4,9 +4,20 @@
     import Header from '@/components/NavBar.vue'
     import Footer from '@/components/BaseFooter.vue'
     import Nav from '@/components/BaseHeader.vue'
+import { ElMessage } from 'element-plus'
 
     // 本地数据存储
     const store = window.localStorage;
+
+    if (!('isLogin' in store)) {
+        store.setItem('isLogin', 'false');
+    }
+    if (!('userId' in store)) {
+        store.setItem('userId', '0');
+    }
+    if (!('userAvatar' in store)) {
+        store.setItem('userAvatar', 'https://small-event-bucket1.oss-cn-hangzhou.aliyuncs.com/avatarDefault.jpg');
+    }
 
     // 路由
     const router = useRouter();
@@ -57,24 +68,13 @@
         else {
             navVisible.value = false;
         }
-        console.log('flag:' + navVisible.value);
     }
 
     const debouncedScroll = createDebouncer(onScroll, 100);
 
     onMounted(() => {
         window.addEventListener('scroll', debouncedScroll);
-
-        // 检验本地储存并初始化
-        if (!('isLogin' in store)) {
-            store.setItem('isLogin', 'false');
-        }
-        if (!('userId' in store)) {
-            store.setItem('userId', '');
-        }
-        if (!('userAvatar' in store)) {
-            store.setItem('userAvatar', '');
-        }
+        ElMessage.success('欢迎来到共享学园！');
     });
 
     onUnmounted(() => {

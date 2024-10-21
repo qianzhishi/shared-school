@@ -2,12 +2,8 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 export const useCommentStore = defineStore('comment', () => {
-    // 帖子ID
-    const postId = ref<number>(0)
-
-    // 对象ID
-    const objectId = ref<number>(0);
-    const objectFather = ref<number>(0)
+    // 父级(帖子或一级评论)ID
+    const fatherId = ref<number>(0);
 
     // 用户ID
     const userId = ref<number>(0);
@@ -24,17 +20,15 @@ export const useCommentStore = defineStore('comment', () => {
 
     // 帖子的评论对话框初始化
     function postCommentDiaglogInit(object:number){
-        objectId.value = object;
-        objectFather.value = 0;
+        fatherId.value = object;
         userId.value = 0;
         postContent.value = '';
         postCommentDialogVisiable.value = true;
     }
     
     // 评论的评论对话框初始化
-    function commentCommentDiaglogInit(object:number,father:number) {
-        objectId.value = object;
-        objectFather.value = father;
+    function commentCommentDiaglogInit(object:number) {
+        fatherId.value = object;
         userId.value = 0;
         commentContent.value = '';
         commentCommentDialogVisiable.value = true;
@@ -42,8 +36,7 @@ export const useCommentStore = defineStore('comment', () => {
 
     // 帖子的评论对话框关闭
     function postCommentDialogClose() { 
-        objectId.value = 0;
-        objectFather.value = 0;
+        fatherId.value = 0;
         userId.value = 0;
         postContent.value = '';
         postCommentDialogVisiable.value = false;
@@ -51,17 +44,14 @@ export const useCommentStore = defineStore('comment', () => {
     
     // 评论的评论对话框关闭
     function commentCommentDialogClose() { 
-        objectId.value = 0;
-        objectFather.value = 0;
+        fatherId.value = 0;
         userId.value = 0;
         commentContent.value = '';
         commentCommentDialogVisiable.value = false;
     }
 
     return {
-        postId,
-        objectId,
-        objectFather,
+        fatherId,
         userId,
         postContent,
         commentContent,

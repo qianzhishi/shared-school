@@ -5,25 +5,22 @@
     import { RouterView, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
     import { ElMessage, ElMessageBox } from 'element-plus'
     import api from '@/api/user'
-
+    import { useUserStore } from '@/stores/user';
+    
+    const userStore = useUserStore();
     // 路由
     const router = useRouter()
     const route = useRoute()
 
-
-    // 本地数据存储
-    const store = window.localStorage
-
-    // 判断是否登录
-    let isLogin = true
+    let isLogin = ref(true)
     // 当前访问者的用户id
-    let visitorId = Number(store.getItem('userId'))
+    let visitorId = Number(localStorage.getItem('userId'))
     // 当前被访问用户的id
     const visitedId = ref(Number(route.query.id) || visitorId)
 
-    if (store.getItem('isLogin') == 'false') {
+    if (localStorage.getItem('isLogin') == 'false') {
         visitorId = -1
-        isLogin = false
+        isLogin.value = false
     }
 
     // 记录是否访问自己的个人中心
@@ -31,36 +28,6 @@
         return (visitedId.value == visitorId ? true : false)
     })
 
-    // 保存被访问用户的数据
-    const userData = reactive({
-        id: visitedId.value,
-        name: '',
-        avatarUrl: '',
-        gender: 0,
-        age: 0,
-        bio: '',
-        contact: '',
-        subs: 0,
-        fans: 0,
-    })
-
-    // 获取用户个人信息
-    const getUserInfo = async () => {
-        await api.infoApi({ id: visitedId.value })
-            .then((res: any) => {
-                userData.name = res.name
-                userData.avatarUrl = res.avatar
-                userData.fans = res.fans
-                userData.subs = res.subs 
-                userData.bio = res.intro
-                userData.age = res.age
-                userData.gender = res.sex
-                userData.contact = res.contact
-            })
-            .catch((error: any) => {
-                console.log(error)
-            })
-    }
 
     // 路由跳转
     function redirect(url: string) {
@@ -69,7 +36,8 @@
 
     // 退出登录
     function signOut() {
-        store.setItem('isLogin', 'false');
+        localStorage.setItem('isLogin', 'false')
+        userStore.logout()
         router.push('/login')
     }
 
@@ -79,18 +47,21 @@
     // 判断当前登录用户是否关注此人
     const getFocus = () => {
         if (isLogin) {
-            api.subsApi({ id: visitorId })
+            api.subsApi({ userId: visitorId })
                 .then((res:any) => {
-
-                    if(res.subs != null)
+                    if (res.code == 200)
                     {
-                        const neededData = res.subs.map((item: any) => ({
-                            id: item.id,
-                        }))
-                        isFollowing.value = neededData.some((item: { id: number }) => item.id == visitedId.value)
+                    
+                        if(res.data !== null && res.data !== undefined)
+                        {
+                            const neededData = res.data.map((item: any) => ({
+                                id: item.userId,
+                            }))
+                            isFollowing.value = neededData.some((item: { id: number }) => item.id == visitedId.value)
+                        }
+                        else
+                            isFollowing.value = false
                     }
-                    else
-                        isFollowing.value = false
                 })
         }
         else
@@ -104,19 +75,14 @@
             return
         }
         api.subscribeApi({
-            id: visitedId.value,
-            user: visitorId,
+            focusId: visitorId,
+            focusedId: visitedId.value,
             state: 0
         })
         .then((res: any) => {
-            if (res.code) {
+            if (res.code == 200) {
                 ElMessage.success('关注成功')
                 isFollowing.value = true
-            }
-            else
-            {
-                let msg = res.data.msg;
-                ElMessage.error(msg)
             }
         })
     }
@@ -134,19 +100,14 @@
         )
             .then(() => {
                 api.subscribeApi({
-                    id: visitedId.value,
-                    user: visitorId,
+                    focusId: visitorId,
+                    focusedId: visitedId.value,
                     state: 1
                 })
                 .then((res: any) => {
-                    if (res.code) {
+                    if (res.code == 200) {
                         ElMessage.success('取消成功')
                         isFollowing.value = false
-                    }
-                    else
-                    {
-                        let msg = res.data.msg;
-                        ElMessage.error(msg)
                     }
                 })
             })
@@ -155,17 +116,16 @@
     onBeforeRouteUpdate((from) => {
         if (from.query.id == null) {
             visitedId.value = visitorId
-            getUserInfo()
-
+            userStore.fetchUserInfo(visitorId)
         }
         else {
             visitedId.value = Number(from.query.id)
-            getUserInfo()
+            userStore.fetchUserInfo(Number(from.query.id))
         }
     })
 
     onMounted(async () => {
-        await getUserInfo()
+        await userStore.fetchUserInfo(Number(route.query.id))
         if (!isOwn.value)
             getFocus()
     })
@@ -178,15 +138,15 @@
 
         <div class="user-card">
             <div class="box1">
-                <el-avatar :src="userData.avatarUrl" :size="120" class="avatar" />
+                <el-avatar :src="userStore.avatar" :size="120" class="avatar" />
 
                 <div class="user-info">
-                    <el-text class="name" tag="p">{{ userData.name }}</el-text>
-                    <el-text class="id" type="info" tag="p">ID: {{ userData.id }}</el-text>
-                    <img class="gender-img" src="@/assets/images/male.png" alt="male" v-show="userData.gender == 1">
-                    <img class="gender-img" src="@/assets/images/female.png" alt="Female" v-show="userData.gender == 0">
-                    <el-text class="age" size="large">{{ userData.age }}</el-text>
-                    <el-text class="bio" size="large" tag="p">{{ userData.bio }}</el-text>
+                    <el-text class="name" tag="p">{{ userStore.name }}</el-text>
+                    <el-text class="id" type="info" tag="p">ID: {{ userStore.userId }}</el-text>
+                    <img class="gender-img" src="@/assets/images/male.png" alt="male" v-show="userStore.gender == 1">
+                    <img class="gender-img" src="@/assets/images/female.png" alt="Female" v-show="userStore.gender == 0">
+                    <el-text class="age" size="large">{{ userStore.age }}</el-text>
+                    <el-text class="bio" size="large" tag="p">{{ userStore.intro }}</el-text>
                 </div>
 
                 <div v-if="!isOwn">
@@ -211,8 +171,9 @@
             <div class="box2"></div>
 
             <div class="box3">
-                <el-text class="text"> <span>{{ userData.fans }}</span>粉丝</el-text>
-                <el-text class="text"> <span>{{ userData.subs }}</span>关注</el-text>
+                <el-text class="text"> <span>{{ userStore.likeNum }}</span>获赞</el-text>
+                <el-text class="text"> <span>{{ userStore.fansNum }}</span>粉丝</el-text>
+                <el-text class="text"> <span>{{ userStore.focusNum }}</span>关注</el-text>
             </div>
         </div>
 

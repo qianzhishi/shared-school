@@ -6,9 +6,6 @@
   import type { cardInfo } from '@/types/types'
   import api from '@/api/content'
 
-  // 本地仓库存储
-  const store = window.localStorage;
-
   // 路由
   const router = useRouter();
 
@@ -70,8 +67,8 @@
   }
 
   function likeCheck() {
-    if (store.getItem('isLogin') == 'true') {
-      like();
+    if (localStorage.getItem('isLogin') == 'true') {
+      likePost();
     }
     else {
       ElMessage.error('您尚未登录，暂不支持该操作！')
@@ -79,16 +76,14 @@
   }
 
   // 点赞帖子
-  const like = async()=> {
-    await api.likeApi({
-        id: cardId.value,
-        user: Number(store.getItem('userId')),
-        state: boolTranslate(isLike.value),
-        type: 0,
+  const likePost = async()=> {
+    await api.likePostApi({
+        cardId: cardId.value,
+        userId: Number(localStorage.getItem('userId')),
+        state: boolTranslate(isLike.value)
     })
     .then((res: any) => {
-        console.log(res)
-        if (res.code == 1) {
+        if (res.code == 200) {
             // 消息提示
             if (isLike.value) {
                 ElMessage.success("取消点赞成功！")
@@ -97,29 +92,24 @@
                 ElMessage.success("点赞成功！")
             }
             isLike.value = !isLike.value;
-            likeCount.value = res.count;
-        }
-        else {
-            let msg = res.data.msg;
-            // 消息提示
-            ElMessage.error(msg)
+            likeCount.value = res.data;
         }
     })
   }
 
   onMounted(() => {
-    cardId.value = postInfo['info'].card;
+    cardId.value = postInfo['info'].cardId;
     cardType.value = postInfo['info'].type;
-    userId.value = postInfo['info'].id;
+    userId.value = postInfo['info'].userId;
     userAvatar.value = postInfo['info'].avatar;
     userName.value = nameTranslate(postInfo['info'].name);
     postTitle.value = postInfo['info'].title;
     postContent.value = postInfo['info'].content;
-    readCount.value = postInfo['info'].num_read;
-    commentCount.value = postInfo['info'].num_comment;
-    likeCount.value = postInfo['info'].num_like;
+    readCount.value = postInfo['info'].viewNum;
+    commentCount.value = postInfo['info'].commentNum;
+    likeCount.value = postInfo['info'].likeNum;
     updateTime.value = postInfo['info'].time;
-    isLike.value = flagTranslate(postInfo['info'].flag);
+    isLike.value = flagTranslate(postInfo['info'].likeFlag);
   })
 </script>
 
@@ -136,7 +126,7 @@
         <label class="user-name">{{ userName }}</label>
       </div>
       <div>
-        <label class="update-time">更新时间：{{ updateTime }}</label>
+        <label class="update-time">更新时间：{{ new Date(updateTime as string).toLocaleString() }}</label>
       </div>
     </div>
     <div class="content">
@@ -182,9 +172,6 @@
         </div>
 
         <el-divider class="divider" direction="vertical" />
-
-        <el-button type="primary" plain v-if="cardType == 4 && isLike == false" @click.stop="likeCheck()">有用</el-button>
-        <el-button type="danger" v-if="cardType == 4 && isLike == true" @click.stop="likeCheck()">取消有用</el-button>
 
         <!-- 点赞 -->
         <div class="like-bar" v-if="cardType != 4">

@@ -5,66 +5,89 @@
     import { ElMessage, ElMessageBox } from 'element-plus'
     import api from '@/api/upload'
 
-    // 路由
-    const router = useRouter();
+
+    interface Folder {
+        pathPreFix: string;
+        name: string;
+        children: Folder[] | null;
+    }
+    // 定义接口
+    interface Resource {
+        resourceId: number;
+        resourceName: string;
+        resourceUrl: string;
+        resourcePath: string;
+        resourceType: number;
+        uploadTime: string;
+        authorId: number;
+    }
 
     const defaultProps = {
         children: 'children',
         label: 'name',
     }
-    
-    interface Folder {
-        id: number;
-        name: string;
-        children: Folder[] | null;
-    }
+
+
+    const filePathList = ref<string[]>([]);
+
+    // 路由
+    const router = useRouter();
 
     //获得户信息
     const store = window.localStorage;
 
     const routerData= ref<Folder[]>([]);
-    const routerCur= ref<number | null>();
-    const path= ref<any[]>([]);
+    const path = ref<any[]>([]);
     const paths= ref<any[]>([]);
     const routerlist = ref<Folder[]| null>([]);
     const filelist = ref<any[]>([]);
-    const list = ref<any[]>([]);
+    const tableData = ref<any[]>([]);
     const hasFile = ref(true);
 
+    function buildTree(paths: string[]): Folder[] {
+        const root: Folder[] = [];
+        const pathMap: { [key: string]: Folder } = {};
 
-     onMounted(async ()=>{
-        api.pathApi()
-        .then((res:any)=>{
-            if(res.code == 1 && Array.isArray(res.path))
-            {
-                routerData.value = res.path;
-                console.log(routerData.value)
-                routerlist.value = routerData.value;
-                list.value = routerData.value ? routerData.value.map((obj:any) => ({...obj, type: '文件夹'})) : [];
-                setbread(routerData.value, []);
-            }
-            else
-            {
-                ElMessage.error('服务器接受失败，请稍后再试');
-            }
-        })
-    })
+        paths.forEach(path => {
+            const parts = path.split('/');
+            let currentPath = '';
+            for (let i = 0; i < parts.length - 1; i++) {
+                const part = parts[i];
+                currentPath += (currentPath ? '/' : '') + part;
 
-    function setbread(data: Folder[], idPath: any[]){
-        if (!data) return;
+                if (!pathMap[currentPath]) {
+                    const newFolder: Folder = {
+                        pathPreFix: currentPath + '/',
+                        name: part,
+                        children: null,
+                    };
+                    pathMap[currentPath] = newFolder;
+
+                    if (i === 0) {
+                        root.push(newFolder);
+                    } else {
+                        const parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+                        if (pathMap[parentPath]) {
+                            if (!pathMap[parentPath].children) {
+                            pathMap[parentPath].children = [];
+                            }
+                            pathMap[parentPath].children.push(newFolder);
+                        }
+                    }
+                }
+            }
+        });
+        return root;
+    }   
+
+    function setbread(data:any[], o:object[]){
         data.forEach((item:any) =>{
-            //console.log(item);
-            idPath.push({id:item.id, name:item.name, children:item.children});
-            //console.log([...idPath]);
-            //console.log(idPath.length);
-            paths.value.push({id:item.id, name:item.name, path:[...idPath]});
-            //console.log(paths.value);
-
-            //console.log(item.children)
+            o.push({pathPreFix:item.pathPreFix, name:item.name, children:item.children});
+            paths.value.push({pathPreFix:item.pathPreFix, name:item.name, path:[...o]});
             if(item.children !== null){
-                setbread(item.children,[...idPath]);
+                setbread(item.children,[...o]);
             }
-            idPath.pop();
+            o.pop();
         })
     }
 
@@ -76,7 +99,7 @@
         }else{
             path.value = [];
             routerlist.value = routerData.value;
-            list.value = routerData.value ? routerData.value.map((obj:any) => ({...obj, type: '文件夹'})) : [];
+            tableData.value = routerData.value ? routerData.value.map((obj:any) => ({...obj, type: '文件夹'})) : [];
         }
 
     }
@@ -89,69 +112,64 @@
     function toHome(){
         path.value = [];
         routerlist.value = routerData.value;
-        list.value = routerData.value ? routerData.value.map((obj:any) => ({...obj, type: '文件夹'})) : [];
+        tableData.value = routerData.value ? routerData.value.map((obj:any) => ({...obj, type: '文件夹'})) : [];
     }
 
     function toPath(item:any){
-        //console.log(item);
         setlist(item);
     }
 
     function handleNodeClick(data: any){
-        //console.log(data);
         setlist(data);
     }
 
-    async function download(row: any){
-        console.log(row.name);
-        console.log(path.value.map(item => item.name).join('/'));
-
-        const fileurl = 'http://8.140.241.231:63000/api/frontend/download/files?name=' + row.name + '&path=' + path.value.map(item => item.name).join('/');
-        //window.open(fileurl, '_blank');
-        const link = document.createElement('a');
-        link.href = fileurl;
-        link.download = '1.pdf'; // 自定义下载文件名和扩展名
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);        
-        
+    async function download(row: any) {
+        api.downloadFileApi({objectName:row.pathUrl})
+            .then((res: any) => {
+                console.log(res);
+                const fileUrl = window.URL.createObjectURL(new Blob([res]))
+                const link = document.createElement('a')
+                link.href = fileUrl
+                link.setAttribute('download', decodeURIComponent(row.name))
+                document.body.appendChild(link)
+                link.click()
+                window.URL.revokeObjectURL(fileUrl)
+                document.body.removeChild(link)
+            })
     }
+
+
+
 
     function changeList(data: any){
         //console.log(data);
         if(data.type === '文件夹'){
             setlist(data);
         }
-    }
+}
 
-    async function setlist(data: any){
-        routerCur.value = data.id;
+async function setlist(data: any) {
         // 确保 routerList.value 不是 null
         if (data.children) {
             routerlist.value = data.children.map((obj: Folder) => ({ ...obj, type: '文件夹' }));
         } else {
             routerlist.value = [];
         }       
-        api.filedataApi({id:data.id})
-        .then((res:any)=>{
-            if(res.code == 1)
-            {
-                filelist.value = res.res.map((obj:any) => ({...obj, type: obj.name.split('.').pop() + '文件'}));
-            }
-            else
-            {
-                ElMessage.error('服务器接受失败，请稍后再试');
-            }
-        })
-        list.value = [...(routerlist.value) || [], ...filelist.value];
-        //console.log(routerlist.value);
-        path.value = paths.value.find(item => item.id === data.id)?.path || [];
-        //console.log(path.value);
-        hasFile.value = list.value.length > 0;
+        await api.getFileByPathApi({path:data.pathPreFix})
+            .then((res: any) => {
+                if(res.code == 200)
+                {
+                    if(res.data.length > 0)
+                        filelist.value = res.data.map((obj: any) => ({ ...obj, type: obj.name.split('.').pop() + '文件'}));
+                }
+            })
+        if (routerlist.value == null)
+            routerlist.value = [];
+        tableData.value = [...routerlist.value, ...filelist.value];
+        path.value = paths.value.find(item => item.pathPreFix === data.pathPreFix)?.path || [];
     }
 
     function toUplode(){
-        //console.log(store)
         if(store.isLogin === 'false'){
             ElMessageBox.confirm(
                 '没登录不能投稿哦，快去登录吧',
@@ -174,8 +192,23 @@
         }else{
            router.push('/upload'); 
         }
-        
     }
+
+    onMounted(async ()=>{
+        api.getFileListApi()
+        .then((res:any)=>{
+            if(res.code == 200)
+            {
+                const data = res.data as Resource[];
+                filePathList.value = data.map(item => item.resourcePath);
+                // 构建树形结构
+                routerData.value = buildTree(filePathList.value);
+                routerlist.value = routerData.value;
+                tableData.value = routerData.value ? routerData.value.map((obj:any) => ({...obj, type: '文件夹'})) : [];
+                setbread(routerData.value, []);
+            }
+        })
+    })
 
 </script>
 
@@ -217,8 +250,8 @@
           />
       </div>
       <div class="select-content">
-          <div v-if="hasFile" style="width: 100%;">
-              <el-table :data="list" 
+          <div style="width: 100%;">
+              <el-table :data="tableData" 
                       style="width: 100%; height: 70vh; border-bottom-right-radius:1vh; border-bottom:0.3vh solid; border-color: gray;"
                       @row-dblclick="changeList"
               >
@@ -232,20 +265,6 @@
                       </template>
                   </el-table-column>
               </el-table>
-          </div>
-          <div v-if="!hasFile" style="width: 100%; position: relative;">
-              <img
-                  src="@/assets/images/filenull.png"
-                  style="width: 100%; height: 100%; border-bottom-right-radius: 1vh;"
-              />
-              <el-button
-                  type="primary"
-                  link
-                  style="position: absolute; top: 95%; left: 80%;"
-                  @click="toUplode"
-              >
-                  投稿中心
-              </el-button>
           </div>
       </div>
   </div>

@@ -305,4 +305,8 @@
       padding: 1vh;
       cursor: pointer;
     }
+
+    .emoji {
+      width: 35px;
+    }
 </style>

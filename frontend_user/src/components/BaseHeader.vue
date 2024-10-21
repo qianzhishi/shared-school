@@ -24,29 +24,21 @@
 
     const handleCommand = (command: string | number | object) => {
         if (command == '1') {
-            if (store.getItem('isLogin') === 'true') {
+            if (store.getItem('isLogin') == 'true') {
                 router.push({ path: '/user', query: { id: Number(store.getItem('userId')) } })
             }
             else {
-                // 消息提示
-                ElMessage({
-                    message: '您尚未登录！',
-                    type: 'error',
-                })
+                ElMessage.error("您尚未登录！")
             }
         }
         else if (command == '2') {
             store.setItem('isLogin', 'false');
             store.setItem('userId', '0');
-            store.setItem('userAvatar', '');
+            store.setItem('userAvatar', 'https://small-event-bucket1.oss-cn-hangzhou.aliyuncs.com/avatarDefault.jpg');
             userAvatar.value = store.getItem('userAvatar');
             setLoginState();
-
-            // 消息提示
-            ElMessage({
-                message: '您已退出登录！',
-                type: 'success',
-            })
+            router.push('/home');
+            ElMessage.success("您已退出登录！")
         }
         else if (command == '3') {
             router.push('/login');

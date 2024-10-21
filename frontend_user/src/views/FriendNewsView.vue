@@ -6,13 +6,11 @@
   import { useRouter } from "vue-router";
   import { ElMessage } from "element-plus";
   import type { cardInfo } from "@/types/types";
-  // 本地数据存储
-  const store = window.localStorage
 
   // 路由
   const router = useRouter() 
   // 当前用户id
-  const userId = Number(store.getItem('userId')) 
+  const userId = Number(localStorage.getItem('userId')) 
   let isLoading = ref(true)
   let dataFlag = ref(false)
 
@@ -20,23 +18,19 @@
 
   // 获取关注圈发布的内容列表
   const getPosts = async()=> {
-      await api.newsApi({id: userId})
+      await api.likeNewsApi({userId: userId})
       .then((res:any) => {
-        console.log(res)
-        if(res.code == 1)
+        if(res.code == 200)
         {
-          if(res.result !=null)
+          if(res.data && res.data.length > 0)
           {
             dataFlag.value = true
-            postsList.value = res.result
+            postsList.value = res.data
             isLoading.value = false
           }
           else
             isLoading.value = false
         }
-      })
-      .catch((error: any) => {
-          console.log(error)
       })
   }
 
@@ -47,26 +41,25 @@
 
   //点赞/取消点赞帖子
   function likePost(index:number) {
-        api.likeApi({
-            id: postsList.value[index].card,
-            user: userId,
-            state: postsList.value[index].flag,
-            type: 0,
+        api.likePostApi({
+            cardId: postsList.value[index].cardId,
+            userId: userId,
+            state: postsList.value[index].likeFlag,
         })
         .then((res: any) => {
-            if(res.code)
+            if(res.code == 200)
             {
-                if(postsList.value[index].flag)
+                if(postsList.value[index].likeFlag)
                 {
-                  postsList.value[index].flag = 0
+                  postsList.value[index].likeFlag = 0
                   ElMessage.success("取消点赞成功！")
                 }
                 else
                 {
-                  postsList.value[index].flag = 1
+                  postsList.value[index].likeFlag = 1
                   ElMessage.success("点赞成功！")           
                 }
-                postsList.value[index].num_like =res.count
+                postsList.value[index].likeNum =res.data
             }
         })      
     }
@@ -97,37 +90,36 @@
             <el-empty :image-size=400 :image="bgUrl" description="暂无动态！"/>
           </div>
           
-          <div v-else v-for="(item,index) in postsList" :key="item.card" class="item">
+          <div v-else v-for="(item,index) in postsList" :key="item.cardId" class="item">
             <div style="display: flex; align-items: center; ">
                 <el-avatar
                     :src="item.avatar"
                     :size="60"
-                    style=""
-                    @click="router.push({ path: '/user', query: { id: item.id } })"
+                    @click="router.push({ path: '/user', query: { id: item.userId } })"
                 />
               <div style="display: flex; flex-direction: column; margin-left: 10px;">
-                <span class="post-name" @click="router.push({ path: '/user', query: { id: item.id } })">{{ item.name }}</span>
+                <span class="post-name" @click="router.push({ path: '/user', query: { id: item.userId } })">{{ item.name }}</span>
                 <span style="color: #a7abb0; font-size: 16px" >{{ new Date(item.time).toLocaleString() }}</span>
               </div>
             </div>
 
-            <div class="post-title" @click="toDetail(item.card)">{{ item.title }}</div>
-            <p v-html="item.content" class="post-content" @click="toDetail(item.card)"></p>
+            <div class="post-title" @click="toDetail(item.cardId)">{{ item.title }}</div>
+            <p v-html="item.content" class="post-content" @click="toDetail(item.cardId)"></p>
             
 
             <div class="post-bottom">
               <div style="display: flex; align-items: center;">
                 <img width="40" src="@/assets/icons/views.svg">
-                <span class="icon-text">({{ item.num_read }})</span>
+                <span class="icon-text">({{ item.viewNum }})</span>
               </div>
-              <div style="display: flex; align-items: center;" @click="toDetail(item.card)">
+              <div style="display: flex; align-items: center;" @click="toDetail(item.cardId)">
                 <img width="40" src="@/assets/icons/comment.svg">
-                <span class="icon-text">({{ item.num_comment }})</span>
+                <span class="icon-text">({{ item.commentNum }})</span>
               </div>
               <div style="display: flex; align-items: center;">
-                <img v-show="item.flag" width="40" src="@/assets/icons/likes.svg" @click="likePost(index)">
-                <img v-show="!item.flag" width="40" src="@/assets/icons/unlikes.svg" @click="likePost(index)">
-                <span class="icon-text">{{ item.num_like }}</span>
+                <img v-show="item.likeFlag" width="40" src="@/assets/icons/likes.svg" @click="likePost(index)">
+                <img v-show="!item.likeFlag" width="40" src="@/assets/icons/unlikes.svg" @click="likePost(index)">
+                <span class="icon-text">{{ item.likeNum }}</span>
               </div>
             </div>
           </div>

@@ -6,39 +6,45 @@
     import { ElMessage, ElMessageBox } from "element-plus";
     import { useRoute, useRouter } from "vue-router";
     import api from '@/api/user'
+    import { useUserStore } from '@/stores/user';
+    
+    const userStore = useUserStore();
 
     const router = useRouter()
     const route = useRoute()
 
-    // 本地数据存储
-    const store = window.localStorage
 
     const dialogVisible = ref(false)
 
     // 当前访问者的用户id
-    const visitorId = Number(store.getItem('userId'))
+    const visitorId = Number(localStorage.getItem('userId'))
     // 当前被访问用户的id
     const visitedId = ref(Number(route.query.id) || visitorId)
     // 记录用户是否访问自己的个人中心
     const isOwn = computed(()=>{
         return (visitedId.value == visitorId ? true : false)
     }) 
-    // 记录被访问用户的评论查看权限
     const commentFlag = ref(true)
+    // 记录被访问用户的评论查看权限
+    if (!isOwn.value)
+    {
+        commentFlag.value = userStore.showComments ? true : false
+    }
 
-    // 记录当前帖子列表是否有数据
+
+    // 记录当前评论列表是否有数据
     let dataFlag = ref(false)
 
     type commentData = {
-        comment_id: number,
-        card_id: number,
-        author_id: number,
+        commentId: number,
+        fatherId: number,
+        userId: number,
         avatar: string,
         name: string,
         content: string,
-        num_like: number,
+        likeNum: number,
         time: string,
-        flag: boolean,
+        likeFlag: number,
     }
 
     const commentsList = ref<commentData[]>([])
@@ -47,31 +53,20 @@
 
     // 获取用户评论列表
     const getComments = async()=> {
-        api.commentApi({id: visitedId.value, user_id: visitorId})
-        .then((res: any) => {
-            if(res.list.length > 0)
-            {
-                dataFlag.value = true
-                commentsList.value = res.list               
-            }
-            else
-                dataFlag.value = false
-        })
-        .catch((error: any) => {
-            console.log(error)
+        api.commentListApi({visitorId: visitorId, visitedId: visitedId.value, type:1})
+            .then((res: any) => {
+                if (res.code == 200)
+                {
+                    if(res.data && res.data.length > 0)
+                    {
+                        dataFlag.value = true
+                        commentsList.value = res.data          
+                    }
+                    else
+                        dataFlag.value = false
+                }
         })
     }
-    
-    // 获取用户隐私设置
-    const getSettings = async()=> {
-        api.settingsApi({id: visitedId.value})
-        .then((res: any) => {
-            commentFlag.value = res.data.comment ? true : false
-        })
-        .catch((error: any) => {
-            console.log(error)
-        })
-    } 
 
     const showTip = (commentId:number) => {
         ElMessageBox.confirm(
@@ -90,43 +85,39 @@
 
     // 删除评论
     const deleteComments = (commentId:number)=> {
-        api.delcommentApi({comment_id: commentId})
+        api.delCommentApi({commentId: commentId})
         .then((res: any) => {
-            if(res.code)
+            if(res.code == 200)
             {
-                commentsList.value = commentsList.value.filter(comment => comment.comment_id !== commentId);
+                commentsList.value = commentsList.value.filter(comment => comment.commentId !== commentId);
                 ElMessage.success('删除成功')
             }
-        })
-        .catch((error: any) => {
-            console.log(error)
         })
     }
     
     function getDetail(commentId:number) {
-        index.value = commentsList.value.findIndex((item: { comment_id: any; }) => item.comment_id == commentId);
+        index.value = commentsList.value.findIndex((item: { commentId: any; }) => item.commentId == commentId);
         dialogVisible.value = true
     }
 
     function likeCmt() {
-        api.likeApi({
-            id: commentsList.value[index.value].comment_id,
-            user: visitorId,
-            state: commentsList.value[index.value].flag ? 1:0,
-            type: 1,
+        api.likeCommentApi({
+            fatherId: commentsList.value[index.value].commentId,
+            userId: visitorId,
+            state: commentsList.value[index.value].likeFlag ? 1:0,
         })
         .then((res: any) => {
-            if(res.code)
+            if(res.code == 200)
             {
-                if(commentsList.value[index.value].flag)
+                if(commentsList.value[index.value].likeFlag)
                 {
-                    commentsList.value[index.value].flag = false
+                    commentsList.value[index.value].likeFlag = 0
                 }
                 else
                 {
-                    commentsList.value[index.value].flag = true           
+                    commentsList.value[index.value].likeFlag = 1          
                 }
-                commentsList.value[index.value].num_like = res.count
+                commentsList.value[index.value].likeNum = res.count
                 ElMessage.success('操作成功')
             }
         })    
@@ -134,11 +125,9 @@
 
 
 
-    onMounted(async()=>{
-        if(!isOwn.value)
-            await getSettings()       
+    onMounted(async()=>{     
         //有权限再获取数据
-        if(commentFlag.value) {
+        if(commentFlag.value || isOwn.value) {
             getComments()
         }
     })
@@ -156,11 +145,11 @@
             <el-empty :image-size=250 :image="bgUrl" description="暂无评论！"/>
         </div>
         <el-scrollbar class="scrollbar" v-else>
-            <div v-for="item in commentsList" :key="item.comment_id" class="item" @click="getDetail(item.comment_id)">
+            <div v-for="item in commentsList" :key="item.commentId" class="item" @click="getDetail(item.commentId)">
                 <div style="display: flex; width: 100%; justify-content: space-between;">
                     <div style="display: flex;">
                         <img class="icon" src="@/assets/icons/time.svg" alt="time" width="30">
-                        <el-text  type="info" style="margin-left: 20px; font-size: 20px;">{{ item.time }}</el-text>
+                        <el-text  type="info" style="margin-left: 20px; font-size: 20px;">{{ new Date(item.time as string).toLocaleString() }}</el-text>
                     </div>
                     <el-dropdown style="margin-right: 20px;">
                         <el-button  plain>
@@ -168,13 +157,13 @@
                         </el-button>
                         <template #dropdown>
                             <el-dropdown-menu>
-                                <el-dropdown-item @click="showTip(item.comment_id)">删除</el-dropdown-item>
+                                <el-dropdown-item @click="showTip(item.commentId)">删除</el-dropdown-item>
                             </el-dropdown-menu>
                         </template>
                     </el-dropdown>
                 </div>    
 
-                <el-text  class="content" truncated >{{ item.content }}</el-text>
+                <el-text  class="content" truncated v-html="item.content"></el-text>
 
             </div>
             <el-text  type="info" style="margin: 30px; font-size: 20px;">没有更多数据了</el-text>
@@ -215,18 +204,18 @@
                 </div>                  
             </div>
 
-            <p class="comment-content">{{ commentsList[index].content }}</p>
+            <p class="comment-content" v-html="commentsList[index].content"></p>
 
             <div style="display: flex; width: 60%; justify-content: space-between; margin-top: 10px; margin-left: 70px;">
                 <span 
                     style="color: #29cdff; font-size: 20px;"
-                    @click="router.push(`/detail?id=${commentsList[index].card_id}`)"
+                    @click="router.push(`/detail?id=${commentsList[index].fatherId}`)"
                 >
                     查看原帖
                 </span>
 
                 <div style="display: flex; justify-content: center;">
-                    <img v-if="commentsList[index].flag"
+                    <img v-if="commentsList[index].likeFlag"
                         class="icon" 
                         src="@/assets/icons/likes.svg"
                         @click="likeCmt()"
@@ -236,7 +225,7 @@
                         src="@/assets/icons/unlikes.svg"
                         @click="likeCmt()"
                     >
-                    <span style="margin-left: 10px; font-size: 20px;">{{ commentsList[index].num_like }}</span>                    
+                    <span style="margin-left: 10px; font-size: 20px;">{{ commentsList[index].likeNum }}</span>                    
                 </div>
 
             </div>
@@ -282,11 +271,14 @@
         flex-direction: column;
         align-items: flex-start;
         justify-content: space-evenly;
-        height: 100px;
+        position: relative;
+        object-fit: contain;
+        height: fit-content;
         margin: 20px auto;
         background: linear-gradient(to right,rgba(131, 96, 195,0.1),rgba(192, 108, 132,0.1));
         border-radius: 10px;
     }
+
 
     .item:hover {
         background: linear-gradient(to left, rgba(131, 96, 195, 0.2), rgba(192, 108, 132, 0.2));
@@ -298,10 +290,12 @@
 
     .content {
         width: 90%;
+        height: fit-content;
         margin-left: 20px;
-        font-size: 22px;
+        font-size: 24px;
         color: black;
     }
+
 
     .post-title {
         display: flex;
@@ -340,5 +334,7 @@
     .icon {
         width: 30px;
     }
+
+
 
 </style>

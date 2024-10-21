@@ -6,19 +6,15 @@
     import { UserFilled } from '@element-plus/icons-vue'
     import { useCommentStore } from '@/stores/comment';
     import type {commentInfo} from '@/types/types'
-
     import { ElMessage } from 'element-plus'
-
-    // 本地仓库存储
-    const store = window.localStorage;
 
     // 评论仓库
     const commentStore = useCommentStore()
 
 
     function toComment() {
-        if (store.getItem('isLogin') == 'true') {
-            commentStore.commentCommentDiaglogInit(commentStore.postId, Number(commentId));
+        if (localStorage.getItem('isLogin') == 'true') {
+            commentStore.commentCommentDiaglogInit(Number(commentId.value));
         }
         else {
             ElMessage.error('您尚未登录，暂不支持该操作！')
@@ -26,8 +22,8 @@
     }
 
     function likeCheck() {
-        if (store.getItem('isLogin') == 'true') {
-            like();
+        if (localStorage.getItem('isLogin') == 'true') {
+            likeComment();
         }
         else {
             ElMessage.error('您尚未登录，暂不支持该操作！')
@@ -57,18 +53,9 @@
     const commentId = ref<number>(0);
     const commentContent = ref("sbyl");
     const commentLike = ref(0)
-    const commentReply = ref(0)
     const updateTime = ref("2024/05/12 20:23:09")
     const isLike = ref(false)
     const commentList = ref<Array<commentInfo>>()
-
-    // 请求参数
-    // const likeParams = {
-    //     id: commentId.value,
-    //     user: store.getItem('userId'),
-    //     state: boolTranslate(isLike.value),
-    //     type: 1,
-    // }
 
     // 展开子评论列表
     function openCommentList() {
@@ -102,18 +89,14 @@
     }
 
     // 点赞评论
-    const like = async()=> {
-        await api.likeApi({
-            id: commentId.value,
-            user: Number(store.getItem('userId')),
+    const likeComment = async()=> {
+        await api.likeCommentApi({
+            commentId: commentId.value,
+            userId: Number(localStorage.getItem('userId')),
             state: boolTranslate(isLike.value),
-            type: 1,
         })
         .then((res: any) => {
-            console.log(res)
-            // 状态码
-            let code = res.code;
-            if (code == 1) {
+            if (res.code == 200) {
                 // 消息提示
                 if (isLike.value) {
                     ElMessage.success("取消点赞成功！")
@@ -122,49 +105,36 @@
                     ElMessage.success("点赞成功！")
                 }
                 isLike.value = !isLike.value;
-                commentLike.value = res.count;
-            }
-            else {
-                let msg = res.data.msg;
-                // 消息提示
-                ElMessage.error(msg)
+                commentLike.value = res.data;
             }
       })
     }
 
-      // 获取子评论列表
-      const getCommentList = async()=> {
-        await api.replylistApi({
-            id: commentId.value,
-            user_id: Number(store.getItem('userId')),
+    // 获取子评论列表
+    const getCommentList = async()=> {
+        await api.commentListApi({
+            fatherId: commentId.value,
+            visitorId: Number(localStorage.getItem('userId')),
+            type:2
         })
         .then((res: any) => {
-            console.log(res)
-            // 状态码
-            let code = res.code;
-            if (code == 1) {
+            if (res.code == 200) {
                 // 消息提示
                 ElMessage.success("获取内容成功！")
-                commentList.value = res.list;
-            }
-            else {
-                let msg = res.data.msg;
-                // 消息提示
-                ElMessage.error(msg)
+                commentList.value = res.data;
             }
       })
     }
 
     onMounted(() => {
-        commentId.value = props['info'].id;
-        userId.value = props['info'].author_id;
+        commentId.value = props['info'].commentId;
+        userId.value = props['info'].userId;
         userAvatar.value = props['info'].avatar;
         userName.value = props['info'].name;
         commentContent.value = props['info'].content;
-        commentLike.value = props['info'].num_like;
-        commentReply.value = props['info'].num_comment;
+        commentLike.value = props['info'].likeNum;
         updateTime.value = props['info'].time;
-        isLike.value = flagTranslate(props['info'].flag);
+        isLike.value = flagTranslate(props['info'].likeFlag);
     })
 </script>
 
@@ -184,9 +154,7 @@
                             </div>
                         </div>
                         <div class="content">
-                            <div>
-                                {{ commentContent }}
-                            </div>
+                            <div v-html="commentContent"></div>
                         </div>
                         <div class="footer">
                             <div class="info-bar">
@@ -199,7 +167,6 @@
                                                 fill="#8a8a8a" p-id="15301"></path>
                                         </svg>
                                     </div>
-                                    <label class="data-text">评论（{{ commentReply }}）</label>
                                 </div>
 
                                 <div class="like-bar">
@@ -229,7 +196,7 @@
                                 </div>
                             </div>
                             <div>
-                                <label class="update-time">评论时间：{{ updateTime }}</label>
+                                <label class="update-time">评论时间：{{ new Date(updateTime as string).toLocaleString() }}</label>
                             </div>
                         </div>
                     </div>

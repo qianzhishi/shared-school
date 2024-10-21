@@ -4,15 +4,15 @@
     import { ElMessage, ElMessageBox } from 'element-plus'
     import api from '@/api/user'
     import { useRoute, useRouter } from "vue-router";
+    import { useUserStore } from '@/stores/user';
+    
+    const userStore = useUserStore();
 
     const route = useRoute()
     const router = useRouter()
 
-   // 本地数据存储
-   const store = window.localStorage
-
     // 当前访问者的用户id
-    const visitorId = Number(store.getItem('userId'))
+    const visitorId = Number(localStorage.getItem('userId'))
     // 当前被访问用户的id
     const visitedId = ref(Number(route.query.id) || visitorId)
     // 记录用户是否访问自己的个人中心
@@ -21,97 +21,91 @@
     })
 
     // 记录被访问用户的关注列表查看权限
-    const subsFlag = ref(true)
+    const focusFlag = ref(true)
+    if(!isOwn.value)
+    focusFlag.value = userStore.showLikes ? true : false
 
     // 记录当前关注列表是否有数据
     let dataFlag = ref(true)
 
     type focusData = { 
-        id: string, 
-        avatarUrl:string, 
-        name: string, 
+        userId: string, 
+        avatar:string, 
+        username: string, 
         intro:string, 
-        isFollowed: boolean 
+        isFollowed: boolean
     }
 
     const focusList = ref<focusData[]>([])
 
     // 获取用户关注列表
     const getFocus = async()=> {
-        await api.subsApi({id: visitedId.value})
-        .then((res: any) => {
-            if(res.subs != null)
-            {
-                dataFlag.value = true
-                const neededData = res.subs.map((item:any) => ({
-                    id: item.id,
-                    name: item.name, 
-                    avatarUrl: item.avatar,
-                    intro: item.intro,
-                    isFollowed: false
-                }))
-                focusList.value = neededData   
-                getisFollwed()             
-            }
-            else
-                dataFlag.value = false
-
-        })
-        .catch((error: any) => {
-            console.log(error)
+        await api.subsApi({userId: visitedId.value})
+            .then((res: any) => {
+                if (res.code == 200)
+                {
+                    if (res.data && res.data.length > 0)
+                    {
+                        dataFlag.value = true
+                        const neededData = res.data.map((item:any) => ({
+                            userId: item.userId,
+                            username: item.username, 
+                            avatar: item.avatar,
+                            intro: item.intro,
+                            isFollowed: false
+                        }))
+                        focusList.value = neededData
+                        getIsFollwed()
+                    }
+                    else
+                        dataFlag.value = false
+                }
         })
     }
 
     // 判断当前登录用户是否关注此人的关注列表里的用户
-    const getisFollwed = async() => {
-        if(store.getItem('isLogin') == 'false')
-            return            
-        await api.subsApi({id: visitorId})
-        .then((res:any) => {
-            if(res.subs.length > 0) {
-                const neededData = res.data.subs.map((item:any) => ({
-                    id: item.id,
-                }))
-                focusList.value.forEach(focusedUser => {
-                    if (neededData.some((data: { id: any; }) => data.id == focusedUser.id)) {
-                        focusedUser.isFollowed = true;
+    const  getIsFollwed = async () => {
+        if(localStorage.getItem('isLogin') == 'false')
+            return  
+        api.subsApi({userId: visitorId})
+            .then((res: any) => {
+                if (res.code == 200)
+                {
+                    if(res.data && res.data.length > 0)
+                    {
+                        const neededData = res.data.map((item:any) => ({
+                            id: item.userId,
+                        }))
+                        focusList.value.forEach(focusUser => {
+                            if (neededData.some((data: { id: any; }) => data.id == focusUser.userId)) {
+                                focusUser.isFollowed = true;
+                            }
+                        })
+                        
                     }
-                })
-            }
-
-        })
-        .catch((error: any) => {
-            console.log(error)
+                }
         })
     }
     
-    // 获取用户隐私设置
-    const getSettings = async()=> {
-        api.settingsApi({id: visitedId.value})
-        .then((res: any) => {
-            subsFlag.value = res.data.post ? true : false
-        })
-    }    
-
     // 关注用户
     const follow = (item:focusData)=> {
-        if(store.getItem('isLogin') == 'false')
+        if(localStorage.getItem('isLogin') == 'false')
         {
             ElMessage.info('请先登录后再进行此操作！')
             return            
         }
-        if(visitorId == Number(item.id))
+        if(visitorId == Number(item.userId))
         {
             ElMessage.info('不能关注自己哦！')
             return             
         }
         api.subscribeApi({
-            id: Number(item.id),
-            user: visitorId,
+            focusedId: Number(item.userId),
+            focusId: visitorId,
             state: 0
         })
         .then((res: any) => {
-            if(res.code) {
+            if(res.code == 200) {
                 ElMessage.success('关注成功')
                 item.isFollowed = true
             }
@@ -131,12 +125,12 @@
         )
         .then(() => {
             api.subscribeApi({
-                id: Number(item.id),
-                user: visitorId,
+                focusedId: Number(item.userId),
+                focusId: visitorId,
                 state: 1
             })
             .then((res: any) => {
-                if(res.code) {
+                if(res.code == 200) {
                     ElMessage.success('取消成功')
                     item.isFollowed = false
                 }
@@ -145,18 +139,15 @@
     }
 
     onMounted(async()=>{
-        if(!isOwn.value)
-            await getSettings()
-        if(subsFlag.value) {
+        if(focusFlag.value || isOwn.value) {
             await getFocus()
         }
-
     })
 </script>
 
 <template>
 
-    <div class="viewSubs" v-if="subsFlag">
+    <div class="viewSubs" v-if="focusFlag">
 
         <div class="title" v-if="isOwn">我的关注</div>
         <div class="title" v-else>关注</div>
@@ -166,18 +157,18 @@
             <el-empty :image-size=250 :image="bgUrl" description="暂无关注"/>
         </div>
         <el-scrollbar class="scrollbar" v-else>
-            <div v-for="item in focusList" :key="item.id" class="item">
+            <div v-for="item in focusList" :key="item.userId" class="item">
                 <el-avatar
-                    :src="item.avatarUrl"
+                    :src="item.avatar"
                     :size="60"
                     class="avatar"
-                    @click="router.push({ path: '/user', query: { id: item.id } })"
+                    @click="router.push({ path: '/user', query: { id: item.userId } })"
                 />
                 <div class="box">
                     <el-text 
                         class="name" 
-                        @click="router.push({ path: '/user', query: { id: item.id } })">
-                        {{item.name}}
+                        @click="router.push({ path: '/user', query: { id: item.userId } })">
+                        {{item.username}}
                     </el-text>
 
                     <el-text class="bio" 

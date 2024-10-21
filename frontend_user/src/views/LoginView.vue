@@ -4,12 +4,11 @@
     import { ElMessage } from 'element-plus'
     import { useRouter } from 'vue-router'
     import api from '@/api/system'
+    import { useUserStore } from '@/stores/user';
 
+    const userStore = useUserStore();
     // 路由
     const router = useRouter();
-
-    // 本地数据存储
-    const store = window.localStorage;
 
     // 当前状态
     const state = ref(true);
@@ -139,53 +138,46 @@
 
     // 提交登录
     const login = async()=> {
-        await api.loginApi({id: loginRuleForm.userid, pwd: loginRuleForm.password})
+        await api.loginApi({id: loginRuleForm.userid, password: loginRuleForm.password})
         .then((res: any) => {
-            // 状态码
-            let code = res.code;
-            if (code == 1) {
-                console.log(res)
-                // 存储登录状态信息
-                store.setItem('isLogin', 'true');
-                store.setItem('userId', loginRuleForm.userid);
-                store.setItem('userAvatar', res.avatar);
-                // 消息提示
+
+            if (res.code == 200) {
+                localStorage.setItem('isLogin', 'true')
+                localStorage.setItem('userId', loginRuleForm.userid)
+                localStorage.setItem('userAvatar', res.data)
+                userStore.fetchUserInfo(Number(loginRuleForm.userid))
                 ElMessage.success('登录成功！')
-                // 转至主页
                 router.push('/home');
             }
             else {
-                // 存储登录状态信息
-                store.setItem('isLogin', 'false');
-                let msg = res.data.msg;
-                // 消息提示
-                ElMessage.error(msg)
+                localStorage.setItem('isLogin', 'false');
             }
         })
         .catch(() => {
             // 存储登录状态信息
-            store.setItem('isLogin', 'false');
+            localStorage.setItem('isLogin', 'false');
         })
     }    
 
     // 提交注册
-    const register = async()=> {
-        await api.registerApi({name: registerRuleForm.username,pwd: registerRuleForm.password})
+    const register = async () => {
+        // const formData = new FormData();
+        // formData.append('username', registerRuleForm.username);
+        // formData.append('password', registerRuleForm.password);
+        await api.registerApi({
+            username: registerRuleForm.username,
+            password: registerRuleForm.password
+        })
         .then((res: any) => {
             console.log(res)
-            // 状态码
-            let code = res.code;
-            if (code == 1) {
-                userId.value = res.id;
-                // 消息提示
+            if (res.code == 200) {
+                userId.value = res.data;
+                localStorage.setItem('isLogin', 'true')
+                localStorage.setItem('userId', res.data)
+                userStore.fetchUserInfo(res.data)
+                localStorage.setItem('userAvatar', 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png')
                 ElMessage.success('注册成功！')
-                // 显示ID
                 dialogVisible.value = true;
-            }
-            else {
-                let msg = res.data.msg;
-                // 消息提示
-                ElMessage.error(msg)
             }
         })
     }
@@ -207,7 +199,7 @@
 
     onMounted(() => {
         // 清空本地存储中的信息
-        store.clear();
+        localStorage.clear();
     })
 </script>
 
@@ -275,7 +267,7 @@
               </div>
               <template #footer>
                   <div class="dialog-footer">
-                      <el-button type="primary" @click="dialogVisible = false" :disabled="!receiveChecked">
+                      <el-button type="primary" @click="router.push('/home')" :disabled="!receiveChecked">
                           确定
                       </el-button>
                   </div>

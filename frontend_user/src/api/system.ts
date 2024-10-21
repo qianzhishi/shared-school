@@ -3,7 +3,7 @@ import system from './request'
 // 用户登录接口
 const loginApi = (data: any) => {
     return system.get({
-        url: '/frontend/system/login?apipost_id=cc19811b9e023',
+        url: 'api/frontend/system/login',
         data
     })
 }
@@ -13,7 +13,7 @@ const loginApi = (data: any) => {
 // 用户注册接口
 const registerApi = (data: any) => {
   return system.post({
-      url: '/frontend/system/register?apipost_id=cb20aef79e00d',
+      url: 'api/frontend/system/register',
       data
   })
 }

@@ -7,17 +7,18 @@
     import { useRouter } from "vue-router";
     import { useRoute } from 'vue-router'
     import api from '@/api/user'
+    import { useUserStore } from '@/stores/user';
+    
+    const userStore = useUserStore();
 
 
     // 路由
     const router = useRouter()
     const route = useRoute()
 
-    // 本地数据存储
-    const store = window.localStorage
 
     // 当前访问者的用户id
-    const visitorId = Number(store.getItem('userId'))
+    const visitorId = Number(localStorage.getItem('userId'))
     // 当前被访问用户的id
     const visitedId = ref(Number(route.query.id) || visitorId)
     // 记录用户是否访问自己的个人中心
@@ -25,16 +26,18 @@
         return (visitedId.value == visitorId ? true : false)
     })
 
-    // 记录被访问用户的帖子查看权限
+    // 记录被访问用户的评论查看权限
     const postFlag = ref(true)
+    if(!isOwn.value)
+        postFlag.value = userStore.showPosts ? true : false
 
     // 记录当前帖子列表是否有数据
-    let dataFlag = ref(true)
+    let dataFlag = ref(false)
 
     type postData = {
         cardId: number,
         title: string,
-        time: string,
+        date: string,
         content: string
     }
 
@@ -42,37 +45,29 @@
 
     // 获取用户帖子列表
     const getPostings = async()=> {
-        await api.contentApi({id: visitedId.value, user: visitorId})
-        .then((res: any) => {
-            if(res!= null) {
-                dataFlag.value = true
-                const neededData = res.list.map((item:any) => ({
-                    cardId: item.card,
-                    title: item.title, 
-                    time: item.time.substring(0, 10),
-                    content: item.content
-                }));
-                postingsList.value = neededData
+        await api.contentApi({userId: visitedId.value})
+            .then((res: any) => {
+            if (res.code == 200) {
+                if (res.data && res.data.length > 0)
+                {
+                    dataFlag.value = true
+                    // const neededData = res.list.map((item:any) => ({
+                    //     cardId: item.card,
+                    //     title: item.title, 
+                    //     time: item.time.substring(0, 10),
+                    //     content: item.content
+                    // }));
+                    // postingsList.value = neededData
+                    postingsList.value = res.data
+                    
+                }
             }
             else
                 dataFlag.value = false
         })
-        .catch((error: any) => {
-            console.log(error)
-        })
     }
 
-    // 获取用户隐私设置
-    const getSettings = async()=> {
-        api.settingsApi({id: visitedId.value})
-        .then((res: any) => {
-            postFlag.value = res.data.post ? true : false
-        })
-        .catch((error: any) => {
-            console.log(error)
-        })
-    }     
-
+ 
     const showTip = (cardId:number) => {
         ElMessageBox.confirm(
             '确定要删除吗?',
@@ -90,16 +85,13 @@
 
     // 删除帖子
     const deletePosting = (cardId:number)=> {
-        api.deleteApi({id: cardId})
+        api.delPostApi({cardId: cardId})
         .then((res: any) => {
-            if(res.code)
+            if(res.code == 200)
             {
                 postingsList.value = postingsList.value.filter(post => post.cardId != cardId);
                 ElMessage.success('删除成功')
             }
-        })
-        .catch((error: any) => {
-            console.log(error)
         })
     }
 
@@ -110,9 +102,7 @@
     
 
     onMounted(async()=>{
-        if(!isOwn.value)
-            await getSettings()
-        if(postFlag.value)
+        if(postFlag.value || isOwn.value)
             await getPostings()
     })
 
@@ -134,7 +124,7 @@
                 <div style="display: flex; width: 100%; justify-content: space-between;">
                     <div style="display: flex;">
                         <img class="icon" src="@/assets/icons/time.svg" alt="time" width="30">
-                        <el-text  type="info" style="margin-left: 20px; font-size: 20px;">{{ item.time }}</el-text>
+                        <el-text  type="info" style="margin-left: 20px; font-size: 20px;">{{ new Date(item.date as string).toLocaleString() }}</el-text>
                     </div>
                     <el-dropdown style="margin-right: 20px;" v-if="isOwn">
                         <el-button  plain>

@@ -1,33 +1,35 @@
 import load from './request'
 
-// 获取资源路径
-const pathApi = () => {
+// 获取资源列表
+const getFileListApi = () => {
   return load.get({
-      url: '/api/frontend/upload/path?apipost_id=115b2bb9b9e030',
+      url: '/api/frontend/upload/resourceList',
+  })
+}
+
+// 根据含有的路径名获取资源列表
+const getFileByPathApi = (data: any) => {
+  return load.get({
+      url: '/api/frontend/upload/getFileByPath',
+      data
   })
 }
 
 // 下载资源文件
-const filesApi = () => {
+const downloadFileApi = (data: any) => {
   return load.get({
-      url: '/api/frontend/download/files?apipost_id=11c8680339e05c',
-  })
-}
-
-// 获取资源路径
-const filedataApi = (data: any) => {
-  return load.get({
-      url: '/api/frontend/download/filedata?apipost_id=1160ffbd39e046',
-      data
+      url: '/api/frontend/upload/downloadFile',
+      data,
+      responseType: 'blob'
   })
 }
 
 // --------------------------------
 
 // 上传资源
-const resourceApi = (data: any) => {
+const uploadFileApi = (data: any) => {
   return load.post({
-      url: 'api/frontend/upload/resource?apipost_id=115f570079e039',
+      url: 'api/frontend/upload/resource',
       data
   })
 }
@@ -35,35 +37,44 @@ const resourceApi = (data: any) => {
 // 上传帖子
 const postApi = (data: any) => {
   return load.post({
-      url: '/api/frontend/upload/post?apipost_id=1136fd0139e027',
+      url: '/api/frontend/upload/post',
       data
   })
 }
 
 // 上传图片
-const loadPictureApi = (data: any) => {
+const uploadImageApi = (data: any) => {
   return load.post({
-      url: '/api/frontend/upload/loadPicture?apipost_id=10248b3a39e08d',
+      url: '/api/frontend/upload/image',
       data
   })
 }
 
 // --------------------------------
 
-// 移除图片
-const removePictureApi = (data: any) => {
-  return load.del({
-      url: '/api/frontend/upload/removePicture?apipost_id=1023828e79e086',
+// 删除图片
+const removeImageApi = (data: any) => {
+  return load.post({
+      url: '/api/frontend/upload/removeImage',
+      data
+  })
+}
+
+// 删除资源
+const delResourceApi = (data: any) => {
+  return load.post({
+      url: '/api/frontend/upload/delResource',
       data
   })
 }
 
 export default {
-  pathApi,
-  filesApi,
-  filedataApi,
-  removePictureApi,
-  resourceApi,
-  loadPictureApi,
+  getFileListApi,
+  downloadFileApi,
+  removeImageApi,
+  getFileByPathApi,
+  uploadFileApi,
+  uploadImageApi,
   postApi,
+  delResourceApi
 }

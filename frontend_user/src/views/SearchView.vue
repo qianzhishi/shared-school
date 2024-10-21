@@ -29,9 +29,6 @@
     const router = useRouter();
     const route = useRoute();
 
-    // 本地数据存储
-    const store = window.localStorage;
-
     // 搜索框内容
     const input = ref('');
     const type = ref();
@@ -41,52 +38,42 @@
     const getCardInfo = async()=> {
         loading.value = true;
         await api.searchApi({
-            id: Number(store.getItem('userId')),
-            key: input.value,
+            userId: Number(localStorage.getItem('userId')),
+            keyword: input.value,
             type: type.value,
-            count: 10,
-            index: currentPage.value,
+            size: 10,
+            page: currentPage.value,
         })
         .then((res: any) => {
-            console.log(res)
-            if (res.code == 1) {
-            // 导入卡片信息
-            cardCount.value = res.count;
-            cardList.value = res.result;
-            if(cardList.value.length !== 0){
-                isFruit.value = true;
+            if (res.code == 200) {
+                
+                cardCount.value = res.data.total;
+                cardList.value = res.data.list;
+                if(cardList.value.length !== 0){
+                    isFruit.value = true;
+                }
+                else{
+                    isFruit.value = false;
+                }
+                loading.value = false;
+                ElMessage.success("搜索成功");
             }
-            else{
-                isFruit.value = false;
-            }
-            loading.value = false;
-            }
-            else {
-                let msg = res.data.msg;
-                // 消息提示
-                ElMessage.error(msg)
-            }
+
         })
     }
 
     function search() {
-        //console.log(input.value);
-        //console.log(type.value);
-        //window.location.href = '/search?input='+input.value;
         if (input.value !== '' && typeof type.value !== 'undefined') {
             router.push({ path: '/search', query: { input: input.value, type: type.value } })
                 .then(() => {
                     // 重新刷新页面
                     location.reload()
                 });
-            //window.location.reload();
-
         }
     }
 
     function toUplode(){
-        //console.log(store)
-        if(store.isLogin === 'false'){
+        if(localStorage.isLogin === 'false'){
             ElMessageBox.confirm(
                 '没登录不能投稿哦，快去登录吧',
                 'Warning',
@@ -141,7 +128,7 @@
             </div>
             <div style="width: 100%;">
                 <div class="container" v-loading="loading" v-if="isFruit">
-                    <div v-for="card in cardList" :key="card.card">
+                    <div v-for="card in cardList" :key="card.cardId">
                         <Card :info="card">
                             <!-- 图标 -->
                             <template #icon v-if="card.type === 1">

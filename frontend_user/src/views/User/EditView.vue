@@ -6,22 +6,22 @@
     import { ElMessage } from 'element-plus'
     import {  onBeforeRouteUpdate, useRoute } from 'vue-router'
     import api from '@/api/user'
+    import { useUserStore } from '@/stores/user';
+    
+    const userStore = useUserStore();
 
     // 路由
     const route = useRoute()
     
-    // 本地数据存储
-    const store = window.localStorage
-
 
     // 当前访问者的用户id
-    const visitorId = Number(store.getItem('userId'))
+    const visitorId = Number(localStorage.getItem('userId'))
     // 当前被访问用户的id
     const visitedId = ref(Number(route.query.id) || visitorId)
-    // 记录是否访问自己的个人中心
+    // 记录用户是否访问自己的个人中心
     const isOwn = computed(()=>{
         return (visitedId.value == visitorId ? true : false)
-    })
+    }) 
 
     let dialogVisible = ref(false);
 
@@ -32,68 +32,35 @@
 
     interface RuleForm {
         id: number
-        name: string
+        username: string
         avatar: string
         age: number
-        sex: number
+        gender: number
         intro: string
-
         contact: string
     }
 
-    //保存被访问用户的数据
-    const userData = reactive({
-        id: visitedId.value,
-        name: '',
-        avatar: '',
-        age: 0,
-        sex: 0,
-        intro: '',
-        contact: '',
-    })
 
     const formData = ref<RuleForm>({
         id: visitedId.value,
-        name: '',
-        age: 20,
-        avatar: '',
-        sex: 0,
-        intro: '',
-        contact: '',
+        username: userStore.name,
+        avatar: userStore.avatar,
+        age: userStore.age,
+        gender: userStore.gender,
+        intro: userStore.intro,
+        contact: userStore.contact,
     })
-
-    // 获取用户个人信息
-    const getUserInfo = async()=> {
-        await api.infoApi({id: visitedId.value})
-        .then((res: any) => {
-            userData.name = res.name
-            userData.age = res.age
-            userData.avatar = res.avatar
-            userData.sex  = res.sex
-            userData.intro = res.infro
-            userData.contact = res.contact_info
-            formData.value.id = userData.id
-            formData.value.name = userData.name
-            formData.value.avatar = userData.avatar
-            formData.value.age = userData.age
-            formData.value.sex = userData.sex
-            formData.value.intro = userData.intro
-            formData.value.contact = userData.contact
-
-        })
-        .catch((error: any) => {
-            console.log(error)
-        })
-    }
 
     // 编辑用户信息
     const editUserInfo = ()=> {
         api.editApi(formData.value)
-        .then((res: any) => {
+            .then((res: any) => {
             console.log(res)
-        })
-        .catch((error: any) => {
-            console.log(error)
+            if (res.code == 200)
+            {
+                userStore.fetchUserInfo(visitedId.value)
+                ElMessage.success('保存成功！')
+            }
         })
     }
 
@@ -104,11 +71,9 @@
     const submitForm = async (formEl: FormInstance | undefined) => {
         if (!formEl) return
         await formEl.validate((valid) => {
-            if (valid) {    
-                editUserInfo()
+            if (valid) {   
                 removeImage()
-                ElMessage.success('保存成功！')
-
+                editUserInfo()
             } else {
                 ElMessage.error('输入错误！驳回')
             }
@@ -116,7 +81,7 @@
     } 
 
     const rules = reactive<FormRules<RuleForm>>({
-        name: [
+        username: [
             { required: true, message: '姓名不能为空', trigger: 'blur' },
             { min: 1, max: 10, message: '姓名不能超过10个字', trigger: 'blur' },
         ],
@@ -143,21 +108,9 @@
         dialogVisible.value = false
     }
 
-    onBeforeRouteUpdate((from)=>{
-        if(from.query.id == null) {
-            visitedId.value = visitorId
-            getUserInfo()
-        }
-        else
-        {
-            visitedId.value = Number(from.query.id)
-            getUserInfo()
-        }
-    })
-
     const beforeUpload = (rawFile:any)=>{
-        if (rawFile.type !== "image/jpeg" && rawFile.type !== "image/png") {
-            ElMessage.error('图片类型只能是JPG,PNG格式')
+        if (rawFile.type !== "image/jpeg" && rawFile.type !== "image/png" && rawFile.type !== "image/jpg") {
+            ElMessage.error('图片类型只能是JPEG,JPG,PNG格式')
             return false
         } else if (rawFile.size / 1024 / 1024 > 2) {
             ElMessage.error('上传图片大小不能超过2MB!!')
@@ -165,34 +118,56 @@
         }
         return true       
     }
-
+    // 删除用户上传的头像
     const removeImage = ()=>{
         if(oldImageUrl.value !='')
         {
-            api.removePictureApi({picture_url: oldImageUrl.value})
-            .then(() => {
+            api.removeImageApi({userId: visitorId})
+                .then(() => {
             })
-            .catch((error: any) => {
-                console.log(error)
-            }) 
+
         }      
     }
 
     // 上传头像
     const uploadFile = async(item:any)=> {
         const data = new FormData();
-        data.append('pictureData', item.file)
+        data.append('file', item.file)
+        data.append('authorId', localStorage.getItem('userId') as string)
+        data.append('type','1')
                                     
-        api.loadPictureApi(data)
+        api.uploadImageApi(data)
         .then((res: any) => {
-            if(res.code) {
-                imageUrl.value = res.data.picture_url
+            if(res.code == 200) {
+                imageUrl.value = res.data
+                ElMessage.success('上传成功！')
             }
         })
-    }    
+}
 
-    onMounted(async ()=>{
-        await getUserInfo()
+    // 当路由更新时重新获取数据
+    onBeforeRouteUpdate(async(from) => {
+        await userStore.fetchUserInfo(Number(from.query.id))
+            formData.value.id = visitedId.value
+            formData.value.username = userStore.name
+            formData.value.avatar = userStore.avatar
+            formData.value.age = userStore.age
+            formData.value.gender = userStore.gender
+            formData.value.intro = userStore.intro
+            formData.value.contact = userStore.contact
+    });
+
+    onMounted(async () => {
+        
+        await userStore.fetchUserInfo(visitedId.value)
+        formData.value.id = visitedId.value
+        formData.value.username = userStore.name
+        formData.value.avatar = userStore.avatar
+        formData.value.age = userStore.age
+        formData.value.gender = userStore.gender
+        formData.value.intro = userStore.intro
+        formData.value.contact = userStore.contact
+        
     })
 
 </script>
@@ -228,7 +203,7 @@
                 <el-upload
                     class="avatar-uploader"
                     :limit="1"
-                    accept=".jpg,.png"
+                    accept=".jpg,.png,.jepg"
                     :show-file-list="false"
                     :before-upload="beforeUpload"
                     :http-request="uploadFile"
@@ -269,7 +244,7 @@
             style="width: 75%; margin-top: 20px;"
         >
             <el-form-item label="呢称" prop="name">
-                <el-input v-model="formData.name" />
+                <el-input v-model="formData.username" />
             </el-form-item>
 
             <el-form-item label="年龄" prop="age">
@@ -277,7 +252,7 @@
             </el-form-item>
 
             <el-form-item label="性别" prop="gender">
-                <el-radio-group v-model="formData.sex">
+                <el-radio-group v-model="formData.gender">
                     <el-radio :value=1>男</el-radio>
                     <el-radio :value=0>女</el-radio>
                 </el-radio-group>
@@ -315,7 +290,7 @@
             disabled="true"
         >
             <el-form-item label="呢称">
-                <el-input v-model="formData.name" />
+                <el-input v-model="formData.username" />
             </el-form-item>
 
             <el-form-item label="年龄">
@@ -323,7 +298,7 @@
             </el-form-item>
 
             <el-form-item label="性别">
-                <el-radio-group v-model="formData.sex">
+                <el-radio-group v-model="formData.gender">
                     <el-radio :value=1>男</el-radio>
                     <el-radio :value=0>女</el-radio>
                 </el-radio-group>

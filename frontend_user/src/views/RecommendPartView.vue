@@ -1,9 +1,9 @@
 <script lang="ts" setup>
   import { ref, onMounted } from 'vue';
-  import { ElMessage } from 'element-plus'
   import api from '@/api/content'
   import Card from '@/components/BaseRecommendCard.vue'
   import type { recommendCardInfo } from '@/types/types'
+import { ElMessage } from 'element-plus';
 
   // 轮播图内容
   const advertisementList = ref([
@@ -18,26 +18,17 @@
   // 是否正在加载
   const loading = ref(true);
 
-  // 本地数据存储
-  const store = window.localStorage;
-
   // 推荐列表
-  const recommendList = ref<Array<recommendCardInfo>>([]);
+const recommendList = ref<Array<recommendCardInfo>>([])
 
-  // 获取评论列表
-  const getRecommendList = async()=> {
-      await api.recommendApi({user_id: Number(store.getItem('userId')),})
+
+  // 获取推荐列表
+const getRecommendList = async () => {
+      await api.recommendApi({userId: localStorage.getItem('userId')})
       .then((res: any) => {
-          console.log(res)
-          if (res.code == 1) {
-              // 导入卡片信息
-              recommendList.value = res.result;
+        if (res.code == 200) {
+              recommendList.value = res.data;
               loading.value = false;
-          }
-          else {
-              let msg = res.data.msg;
-              // 消息提示
-              ElMessage.error(msg)
           }
       })
   }
@@ -69,7 +60,7 @@
 
       <!-- 推荐帖子 -->
       <div>
-        <div v-for="card in recommendList" :key="card.card_id">
+        <div v-for="card in recommendList" :key="card.cardId">
           <Card :info="card">
             <!-- 图标 -->
             <template #icon v-if="card.type === 1">

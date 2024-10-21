@@ -10,40 +10,34 @@
     // 路由
     const router = useRouter();
 
-    //获得用户信息
-    const store = window.localStorage;
-
     const props = defineProps(['type']);
 
     const fileList = ref<UploadUserFile[]>([]);
     const dialogImageUrl = ref('');
     const dialogVisible = ref(false);
-    const hasDate = ref(false);
     const title = ref('');
     const content = ref('');
 
-    const uploadPicture = async(file:any)=> {
-        const data = new FormData();
-        data.append('pictureData', file.file)                                    
-        api.loadPictureApi(data)
+    const uploadImage = async(file:any)=> {
+        const data = new FormData()
+        data.append('file', file.file)   
+        data.append('authorId', localStorage.getItem('userId') as string)
+        data.append('type',"2")                                 
+        api.uploadImageApi(data)
         .then((res: any) => {
-            if(res.code) {
-                fileList.value.forEach(item => {if (item.name === file.file.name) { item.url = res.data.picture_url;}});
+            if(res.code == 200) {
+                fileList.value.forEach(item => {if (item.name === file.file.name) { item.url = res.data}});
             }
         })
-    }     
+    }    
 
     const handleRemove: UploadProps['onRemove'] = async (uploadFile) => {
-        api.removePictureApi({picture_url: uploadFile.url})
+        const parsedUrl = new URL(uploadFile.url as string);
+        const path = parsedUrl.pathname.substring(1);
+        api.delResourceApi({filePath: path})
             .then((res:any) => {
-                if(res.code == 1)
-                {
+                if(res.code == 200)
                     ElMessage.success('删除成功');
-                }
-                else
-                {
-                    ElMessage.error('服务器接受失败，请稍后再试');
-                }
             })
     }
 
@@ -85,23 +79,19 @@
                 try {
                     loading.value = true; // 开始加载
                     api.postApi({
-                        id:Number(store.getItem('userId')),
+                        userId:Number(localStorage.getItem('userId')),
                         type:Number(props.type),
                         title: title.value, 
                         content: content.value, 
-                        images: fileList.value.map(item => item.url),
+                        images: fileList.value.map(item => item.url).join(','),
                     })
-                    .then((res:any) => {
-                        console.log(res)
+                    .then((res: any) => {
+                        console.log(res);
                         loading.value = false;
-                        if(res.code == 1)
+                        if(res.code == 200)
                         {
                             ElMessage.success('发布成功');
                             router.push(routerUrl);
-                        }
-                        else
-                        {
-                          ElMessage.error('糟糕，出错了，请稍后再试');
                         }
                     })
                 } catch (error: any) {
@@ -132,7 +122,7 @@
                 v-model:file-list="fileList"
                 list-type="picture-card"
                 accept="image/jpeg,image/gif,image/png,image/jpg"
-                :http-request="uploadPicture"
+                :http-request="uploadImage"
                 :on-preview="handlePictureCardPreview"
                 :on-remove="handleRemove"
                 :limit="5"

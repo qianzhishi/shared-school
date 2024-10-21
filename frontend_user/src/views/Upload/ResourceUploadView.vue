@@ -1,112 +1,114 @@
 <script lang="ts" setup>
   import { ref, onMounted } from 'vue';
-  import type { UploadUserFile } from 'element-plus';
-  import { ElMessage, ElMessageBox } from 'element-plus';
+    import { ElMessage, ElMessageBox } from 'element-plus';
+  import { UploadFilled, DocumentAdd } from '@element-plus/icons-vue'
   import { useRouter } from 'vue-router';
   import api from '@/api/upload'
 
-  // 路由
-  const router = useRouter();
+    // 路由
+    const router = useRouter();
 
-  const defaultProps = {
-      value: 'id',
-      children: 'children',
-      label: 'name',
-  }
+    interface Folder {
+        pathPreFix: string;
+        label: string;
+        children: Folder[] | null;
+    }
+    // 定义接口
+    interface Resource {
+        resourceId: number;
+        resourceName: string;
+        resourceUrl: string;
+        resourcePath: string;
+        resourceType: number;
+        uploadTime: string;
+        authorId: number;
+    }
 
-  //获得用户信息
-  const store = window.localStorage;
+    const filePathList = ref<string[]>([]);
 
-  const routerData= ref();
-  const routerID = ref();
-  const fullPath = ref('');
+    //获得用户信息
+    const store = window.localStorage;
 
-  const path= ref<any[]>([]);
-  const paths= ref<any[]>([]);
+    const routerData= ref<Folder[]>();
 
-  const Filelist = ref<any[]>([]);
-  const fileList = ref<UploadUserFile[]>([]);
-  const files = ref<any[]>([]);
+    //文件路径前缀（相当于所在的文件目录）
+    const selectPath= ref('');
+    const fullPath = ref('');
+
+    const fileList = ref<any[]>([]);
+    const files = ref<any[]>([]);
+
+    function buildTree(paths: string[]): Folder[] {
+        const root: Folder[] = [];
+        const pathMap: { [key: string]: Folder } = {};
+
+        paths.forEach(path => {
+            const parts = path.split('/');
+            let currentPath = '';
+            for (let i = 0; i < parts.length - 1; i++) {
+                const part = parts[i];
+                currentPath += (currentPath ? '/' : '') + part;
+
+                if (!pathMap[currentPath]) {
+                    const newFolder: Folder = {
+                        pathPreFix: currentPath + '/',
+                        label: part,
+                        children: null
+                    };
+                    pathMap[currentPath] = newFolder;
+
+                    if (i === 0) {
+                        root.push(newFolder);
+                    } else {
+                        const parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+                        if (pathMap[parentPath]) {
+                            if (!pathMap[parentPath].children) {
+                            pathMap[parentPath].children = [];
+                            }
+                            pathMap[parentPath].children.push(newFolder);
+                        }
+                    }
+                }
+            }
+        });
+        return root;
+    }
 
   onMounted(async ()=>{
-      api.pathApi()
+      api.getFileListApi()
       .then((res:any)=>{
-          if(res.code == 1)
-          {
-              routerData.value = res.path;
-              setbread(routerData.value, []);
-          }
-          else
-          {
-            ElMessage.error('服务器接受失败，请稍后再试');
-          }
+          if(res.code == 200)
+            {
+                const data = res.data as Resource[];
+                filePathList.value = data.map(item => item.resourcePath);
+                // 构建树形结构
+                routerData.value = buildTree(filePathList.value);
+              
+            }
       })
   })
 
-  function setbread(date:any[], idPath:object[]){
-      date.forEach((item:any) =>{
-          //console.log(item);
-          idPath.push({id:item.id, name:item.name, children:item.children});
-          //console.log([...idPath]);
-          //console.log(idPath.length);
-          paths.value.push({id:item.id, name:item.name, path:[...idPath]});
-          //console.log(paths.value);
 
-          //console.log(item.children)
-          if(item.children !== null){
-              setbread(item.children,[...idPath]);
-          }
-          idPath.pop();
-      })
-  }
+    async function handleNodeClick(data: any) {
+        selectPath.value = data.pathPreFix // 更新路径前缀
+        fullPath.value = data.pathPreFix
+    }
 
-  async function onCheckChange (node:any){
-      path.value = paths.value.find(item => item.id === node).path;
-      //console.log(path.value);
-      fullPath.value = path.value.map(item => item.name).join('/');
+    function uploadFile(file: any) {
+        files.value.push(file.file)
+    }
 
-      api.filedataApi({id:node})
-      .then((res:any)=>{
-          if(res.code == 1)
-          {
-              Filelist.value = res.res;
-          }
-          else
-          {
-            ElMessage.error('服务器接受失败，请稍后再试');
-          }
-      })
-      //console.log(Filelist.value);
-  }
+    function handleRemove() {
+        files.value.pop()
+    }
 
-  function uploadFile(file:any){
-      console.log(file.file);
-      //console.log(fileList.value);
-      // console.log(Filelist.value.some(item => item.name !== file.file.name));
-      if(files.value.length !== 0 || Filelist.value.some(item => item.name === file.file.name)){
-          // 检查是否有重复文件，有的话删除新选择的文件     
-          if(files.value.some(item => item.name === file.file.name) || Filelist.value.some(item => item.name === file.file.name)){
-              ElMessage.error(file.file.name + "文件已存在");
-              fileList.value.pop();
-          }else{
-              files.value.push(file.file);
-          }
-      }else{
-          files.value.push(file.file);
-      }
-  }
-
-  async function submitUpload(){
-      const names = files.value.map(item => item.name);
-      console.log(names);
-      if(fullPath.value === ''){
-          ElMessage({
-              type: 'error',
-              message: '未选择路径',
-          })
-      }else{                        
+    async function submitUpload(){
+        const names = files.value.map(item => item.name);
+        console.log(names);
+        if (fullPath.value === '') {
+            ElMessage.warning('未选择路径');
+        }else{                        
           const isfail = ref(false);
-
           const failFiles = ref<any[]>([])
           ElMessageBox({
               title: '是否发布',
@@ -118,23 +120,14 @@
                   if (action === 'confirm') {
                       instance.confirmButtonLoading = true
                       instance.confirmButtonText = 'Loading...'
-                      //console.log(fileList.value);
-                      //console.log(files.value);
                       files.value.forEach(async (file) => {
                           const formData = new FormData();
-                          formData.append('res', file);
-                          formData.append('id', store.userId);
-                          formData.append('path',fullPath.value);
-                          //console.log(formData.get("res"));
-                          api.resourceApi(formData)
+                          formData.append('file', file);
+                          formData.append('authorId', store.userId);
+                          formData.append('filePathPreFix',fullPath.value);
+                          api.uploadFileApi(formData)
                           .then((res:any)=>{
-                              if(res.code == 1)
-                              {
-                                ElMessage.success(file.name + '发送成功');
-                              }
-                              else
-                              {
-                                ElMessage.error('服务器接受失败，请稍后再试');
+                              if(res.code !== 200){
                                 isfail.value = true;
                                 failFiles.value.push(file);
                               }
@@ -148,8 +141,9 @@
               },
           })
           .then(()=>{
-              if(isfail.value === false){
-                  router.push('/upload/success');
+              if (isfail.value === false) {
+                  ElMessage.success('上传成功');
+                  router.push('/home');
               }else{
                   files.value = failFiles.value;
               }
@@ -167,20 +161,24 @@
 <template>
   <div class="container">
       <div style="font-weight: bold; width: 80%;">
-          资源发送路径: 
+          请选择资源发送路径: 
+          <el-tree-select
+              v-model="selectPath"
+              :data="routerData"
+              check-strictly
+              :render-after-expand="false"
+              @node-click="handleNodeClick"
+          />
+      </div>
+
+      <el-divider />
+
+      <div style="font-weight: bold; width: 80%;">
+          当前资源发送路径: 
           <el-input
               v-model="fullPath"
               disabled
               placeholder="请选择资源发送路径"
-          />
-          <el-tree-select
-              v-model="routerID"
-              placeholder=" 请选择资源发送路径"
-              :data="routerData"
-              :props="defaultProps"
-              check-strictly
-              :render-after-expand="false"
-              @change="onCheckChange"
           />
       </div>
 
@@ -189,22 +187,24 @@
       <el-upload
           v-model:file-list="fileList"
           class="upload-demo"
-          action=""
+          :on-remove="handleRemove"
           :http-request="uploadFile"
       >
-          <template #trigger>
-          <el-button type="primary">选择文件</el-button>
-          </template>
+        <template #trigger>
+            <el-button type="primary" size="large">
+                选择文件
+            <el-icon class="el-icon--right"><DocumentAdd /></el-icon></el-button>
+        </template>
 
-          <el-button class="ml-3" type="success" @click="submitUpload">
-              上传
-          </el-button>
+        <el-button class="ml-4" type="primary" size="large" @click="submitUpload">
+            上传<el-icon class="el-icon--right"><UploadFilled /></el-icon>
+        </el-button>
 
-          <template #tip>
-          <div class="el-upload__tip">
-               files with a size less than 100mb
-          </div>
-          </template>
+        <template #tip>
+            <div class="el-upload__tip" style="margin-left: 40px;">
+                上传文件大小需不大于100MB
+            </div> 
+        </template>
       </el-upload>    
   </div>
 </template>
@@ -220,5 +220,10 @@
       flex-direction: column; /* 如果内容不止一行，确保垂直排列 */
 
   }
+
+  .ml-4 {
+      margin-left: 40px;
+  }
+  
 
 </style>

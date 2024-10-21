@@ -10,9 +10,6 @@
     // 路由
     const router = useRouter();
 
-    //获得用户信息
-    const store = window.localStorage;
-
     const props = defineProps(['type','id']);
 
     const fileList = ref<UploadUserFile[]>([]);
@@ -26,27 +23,18 @@
     // 获取卡片信息
     const getPostInfo = async()=> {
         await api.detailApi({
-            user_id: Number(store.getItem('userId')),
-            card_id: Number(props.id)
+            userId: Number(localStorage.getItem('userId')),
+            cardId: Number(props.id)
         })
         .then((res: any) => {
-            console.log(res)
-            // 状态码
-            let code = res.code;
-            if (code == 1) {
+            if (res.code == 200) {
                 // 导入卡片信息
-                id.value = res.id;
-                title.value = res.title;
-                content.value = res.content;
+                id.value = res.data.cardInfo.userId;
+                title.value = res.data.cardInfo.title;
+                content.value = res.data.cardInfo.content;
                 hasDate.value = true;
-                const images = res.images
-                //console.log(images)
+                const images = res.data.cardInfo.images
                 images.forEach((item:any) =>{if(item !== '') fileList.value.push({name:item.split('/').pop(),url:item})})
-            }
-            else {
-                let msg = res.data.msg;
-                // 消息提示
-                ElMessage.error(msg)
             }
       })
     }    
@@ -55,27 +43,27 @@
         getPostInfo();
     })
 
-    const uploadPicture = async(file:any)=> {
-        const data = new FormData();
-        data.append('pictureData', file.file)                                    
-        api.loadPictureApi(data)
+    const uploadImage = async(file:any)=> {
+        const data = new FormData()
+        data.append('file', file.file)   
+        data.append('authorId', localStorage.getItem('userId') as string)
+        data.append('type',"2")                                 
+        api.uploadImageApi(data)
         .then((res: any) => {
-            if(res.code) {
-                fileList.value.forEach(item => {if (item.name === file.file.name) { item.url = res.data.picture_url;}});
+            if(res.code == 200) {
+                fileList.value.forEach(item => {if (item.name === file.file.name) { item.url = res.data}});
             }
         })
     }     
 
     const handleRemove: UploadProps['onRemove'] = async (uploadFile) => {
-        api.removePictureApi({picture_url: uploadFile.url})
+        const parsedUrl = new URL(uploadFile.url as string);
+        const path = parsedUrl.pathname.substring(1);
+        api.delResourceApi({filePath: path})
             .then((res:any) => {
-                if(res.code == 1)
+                if(res.code == 200)
                 {
                     ElMessage.success('删除成功');
-                }
-                else
-                {
-                    ElMessage.error('服务器接受失败，请稍后再试');
                 }
             })
     }
@@ -117,16 +105,15 @@
             if (result === 'confirm') {
                 try {
                     loading.value = true; // 开始加载
-                    api.editApi({
-                        id:Number(props.id),
+                    api.editPostApi({
+                        cardId:Number(props.id),
                         title: title.value, 
                         content: content.value, 
                         images: fileList.value.map(item => item.url),
                     })
                     .then((res:any) => {
-                        console.log(res)
                         loading.value = false;
-                        if(res.code == 1)
+                        if(res.code == 200)
                         {
                             ElMessage.success('修改成功');
                             router.push(routerUrl);
@@ -160,7 +147,7 @@
                 v-model:file-list="fileList"
                 list-type="picture-card"
                 accept="image/jpeg,image/gif,image/png,image/jpg"
-                :http-request="uploadPicture"
+                :http-request="uploadImage"
                 :on-preview="handlePictureCardPreview"
                 :on-remove="handleRemove"
                 :limit="5"

@@ -1,59 +1,63 @@
 export type cardInfo = {
-    card: number;
+    cardId: number;
     type: number;
-    id: number;
+    userId: number;
     avatar: string;
     name: string;
     title: string;
     content: string;
-    num_read: number;
-    num_comment: number;
-    num_like: number;
+    viewNum: number;
+    commentNum: number;
+    likeNum: number;
     time: string;
-    flag: number;
+    likeFlag: number;
 };
 
 export type recommendCardInfo = {
-    card_id: number;
+    cardId: number;
+    userId: number;
     type: number;
-    author_id: number;
-    author_avatar: string;
-    author_name: string;
+    avatar: string;
+    name: string;
     title: string;
     content: string;
     images:Array<string>;
-    num_read: number;
-    num_like: number;
-    num_comment: number;
+    viewNum: number;
+    likeNum: number;
+    commentNum: number;
     time: string;
-    flag: number;
+    likeFlag: number;
 };
 
   // 评论信息类型
 export type commentInfo = {
-    id: number,
-    author_id: number,
+    commentId: number,
+    fatherId: number,
+    userId: number,
     name: string,
     avatar: string,
     content: string,
-    num_comment: number,
-    num_like: number,
+    likeNum: number,
     time: string,
-    flag: number,
+    likeFlag: number,
 }
 
     // 卡片信息类型
 export type detailInfo = {
-    id: number;
+    cardInfo:{
+        cardId: number;
+        userId: number;
+        type: number;
+        title: string;
+        content: string;
+        date: string;
+        viewNum: number;
+        likeNum: number;
+        commentNum: number;
+        images: Array<string>;
+    }
     name: string;
-    title: string;
     avatar: string;
-    content: string;
-    images: Array<string>;
-    num_like: number;
-    num_read: number;
-    num_comment: number;
-    time: string;
-    list: Array<commentInfo>;
-    flag: number;
+    likeFlag: number;
+    commentList: Array<commentInfo>;
 }

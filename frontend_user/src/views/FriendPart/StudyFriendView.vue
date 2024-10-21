@@ -33,25 +33,19 @@
 
   // 获取卡片信息
   const getCardInfo = async()=> {
-    await api.listApi({
-        id: Number(store.getItem('userId')),
+    await api.postListApi({
+        userId: Number(store.getItem('userId')),
         type: 1,
-        count: 10,
-        index: currentPage.value,
+        size: 10,
+        page: currentPage.value,
     })
     .then((res: any) => {
-        console.log(res)
-        if (res.code == 1) {
+        if (res.code == 200) {
           // 导入卡片信息
-          cardCount.value = res.count;
-          cardList.value = res.list;
+          cardCount.value = res.total;
+          cardList.value = res.data.list;
 
           loading.value = false;
-        }
-        else {
-            let msg = res.data.msg;
-            // 消息提示
-            ElMessage.error(msg)
         }
     })
   }
@@ -65,7 +59,7 @@
 <template>
   <div>
     <div class="container" v-loading="loading">
-      <div v-for="card in cardList" :key="card.card">
+      <div v-for="card in cardList" :key="card.cardId">
         <Card :info="card">
           <template #icon>
             <svg t="1716613194352" class="icon" viewBox="0 0 1036 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"

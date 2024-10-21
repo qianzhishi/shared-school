@@ -12,28 +12,49 @@ const get = (config: AxiosRequestConfig<any>) => {
 
 // 封装post请求
 const post = (config: AxiosRequestConfig<any>) => {
+    const headers:any = {};
+    if (config.data instanceof FormData) {
+        // 如果是 FormData，则不设置 Content-Type
+    } else {
+        headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    }
     return service({
         ...config,
         method: 'post', 
-        data: config.data 
+        data: config.data ,
+        headers:headers
     });
 }
 
 // 封装put请求
 const put = (config: AxiosRequestConfig<any>) => {
+    const headers:any = {};
+    if (config.data instanceof FormData) {
+        // 如果是 FormData，则不设置 Content-Type
+    } else {
+        headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    }
     return service({
         ...config,
-        method: 'put',
-        data: config.data
+        method: 'post', 
+        data: config.data ,
+        headers:headers
     });
 }
 
 // 封装delete请求
 const del = (config: AxiosRequestConfig<any>) => {
+    const headers:any = {};
+    if (config.data instanceof FormData) {
+        // 如果是 FormData，则不设置 Content-Type
+    } else {
+        headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    }
     return service({
         ...config,
-        method: 'delete',
-        data: config.data
+        method: 'post', 
+        data: config.data ,
+        headers:headers
     });
 }
 

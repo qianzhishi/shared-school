@@ -3,15 +3,15 @@ import content from './request'
 // 获取推荐内容接口
 const recommendApi = (data: any) => {
     return content.get({
-        url: 'api//frontend/content/recommend?apipost_id=de7fefd79e12f',
+        url: 'api/frontend/content/recommend',
         data
     })
 }
 
 // 根据帖子类型获取内容接口
-const listApi = (data: any) => {
+const postListApi = (data: any) => {
   return content.get({
-      url: '/api/frontend/content/list?apipost_id=cde057639e0c4',
+      url: '/api/frontend/content/list',
       data
   })
 }
@@ -19,23 +19,23 @@ const listApi = (data: any) => {
 // 获取详细帖子内容接口
 const detailApi = (data: any) => {
   return content.get({
-      url: 'api/frontend/content/detail?apipost_id=cde2c2579e0c7',
+      url: 'api/frontend/content/detail',
       data
   })
 }
 
-// 获取子评论列表接口
-const replylistApi = (data: any) => {
+// 获取评论列表接口
+const commentListApi = (data: any) => {
   return content.get({
-      url: 'api/frontend/content/replylist?apipost_id=dd466f7f9e0da',
+      url: 'api/frontend/content/commentList',
       data
   })
 }
 
 // 获取动态内容接口
-const newsApi = (data: any) => {
+const likeNewsApi = (data: any) => {
   return content.get({
-      url: '/api/frontend/content/news?apipost_id=de8d7bdb9e13d',
+      url: '/api/frontend/content/likeNews',
       data
   })
 }
@@ -43,7 +43,7 @@ const newsApi = (data: any) => {
 // 获取搜索内容接口
 const searchApi = (data: any) => {
   return content.get({
-      url: '/api/frontend/content/search?apipost_id=de60898f9e10c',
+      url: '/api/frontend/content/search',
       data
   })
 }
@@ -53,23 +53,31 @@ const searchApi = (data: any) => {
 // 评论接口
 const commentApi = (data: any) => {
   return content.post({
-      url: '/api/frontend/content/comment?apipost_id=ddfa962f9e0ea',
+      url: '/api/frontend/content/comment',
       data
   })
 }
 
-// 点赞与取消点赞接口
-const likeApi = (data: any) => {
+// 点赞与取消点赞帖子接口
+const likePostApi = (data: any) => {
   return content.post({
-      url: 'api/frontend/content/like?apipost_id=de4d3e939e0fe',
+      url: 'api/frontend/content/likePost',
+      data
+  })
+}
+
+// 点赞与取消点赞评论接口
+const likeCommentApi = (data: any) => {
+  return content.post({
+      url: 'api/frontend/content/likeComment',
       data
   })
 }
 
 // 上传图片
-const loadPictureApi = (data: any) => {
+const uploadImageApi = (data: any) => {
   return content.post({
-      url: '/api/frontend/upload/loadPicture?apipost_id=10248b3a39e08d',
+      url: '/api/frontend/upload/image',
       data
   })
 }
@@ -77,9 +85,9 @@ const loadPictureApi = (data: any) => {
 // --------------------------------
 
 // 修改帖子接口
-const editApi = (data: any) => {
-  return content.put({
-      url: '/api/frontend/content/edit?apipost_id=de6edbf39e11f',
+const editPostApi = (data: any) => {
+  return content.post({
+      url: '/api/frontend/content/editPost',
       data
   })
 }
@@ -87,32 +95,42 @@ const editApi = (data: any) => {
 // --------------------------------
 
 // 删除帖子接口
-const deleteApi = (data: any) => {
-  return content.del({
-      url: '/api/frontend/content/delete?apipost_id=de7b75c79e12b	',
+const delPostApi = (data: any) => {
+  return content.post({
+      url: '/api/frontend/content/delPost',
       data
   })
 }
 
-// 移除图片
-const removePictureApi = (data: any) => {
-  return content.del({
-      url: '/api/frontend/upload/removePicture?apipost_id=1023828e79e086',
+// 删除用户的头像图片
+const removeImageApi = (data: any) => {
+  return content.post({
+      url: '/api/frontend/upload/removeImage',
+      data
+  })
+}
+
+// 删除资源
+const delResourceApi = (data: any) => {
+  return content.post({
+      url: '/api/frontend/upload/delResource',
       data
   })
 }
 
 export default {
   recommendApi,
-  replylistApi,
+  commentListApi,
   detailApi,
-  listApi,
-  newsApi,
+  postListApi,
+  likeNewsApi,
   searchApi,
   commentApi,
-  likeApi,
-  loadPictureApi,
-  editApi,
-  deleteApi,
-  removePictureApi,
+  likePostApi,
+  likeCommentApi,
+  uploadImageApi,
+  editPostApi,
+  delPostApi,
+  removeImageApi,
+  delResourceApi
 }
