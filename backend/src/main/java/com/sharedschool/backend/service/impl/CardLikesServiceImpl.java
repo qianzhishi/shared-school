@@ -8,4 +8,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class CardLikesServiceImpl extends ServiceImpl<CardLikesMapper, CardLikes> implements CardLikesService {
+    @Override
+    public int getLikeFlag(Long cardId, Long userId) {
+        return baseMapper.getLikeFlag(cardId, userId);
+    }
 }

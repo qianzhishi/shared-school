@@ -15,4 +15,20 @@ public class CardServiceImpl extends ServiceImpl<CardMapper, Card> implements Ca
     public List<CardInfo> getCardList(Long userId, int type) {
         return baseMapper.selectCardList(userId,type);
     }
+
+    @Override
+    public List<CardInfo> searchCardList(Long userId, String key, int type) {
+        return baseMapper.searchCardList(userId,key,type);
+    }
+
+    @Override
+    public List<CardInfo> recommendCardList(Long userId, int limit) {
+        return baseMapper.recommendCardList(userId,limit);
+    }
+
+    @Override
+    public List<CardInfo> getFollowedCards(Long userId) {
+        return baseMapper.selectFollowedCards(userId);
+    }
+
 }

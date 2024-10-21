@@ -1,8 +1,6 @@
 package com.sharedschool.backend.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.sharedschool.backend.entity.User;
@@ -14,12 +12,14 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@CrossOrigin(methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
 @RestController
 public class UserController {
 
     @Resource
     private UserService userService;
 
+    // 登录
     @GetMapping("/frontend/system/login")
     public ApiResponse<String> login(@RequestParam Long id, @RequestParam String password){
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
@@ -33,12 +33,14 @@ public class UserController {
         }
     }
 
+    // 获取用户信息
     @GetMapping("/frontend/user/info")
     public ApiResponse<User> getUserInfo(@RequestParam Long id){
         User user = userService.getById(id);
         return ApiResponse.success(user);
     }
 
+    // 注册
     @PostMapping("/frontend/system/register")
     public ApiResponse<Long> addUser(@RequestParam String username, @RequestParam String password){
         User user = new User();
@@ -48,7 +50,8 @@ public class UserController {
         return ApiResponse.success(user.getUserId());
     }
 
-    @PutMapping("/frontend/user/edit")
+    // 编辑用户信息
+    @PostMapping("/frontend/user/edit")
     public ApiResponse<Void> editUser(
             @RequestParam Long id,
             @RequestParam String username,
@@ -81,7 +84,8 @@ public class UserController {
             }
     }
 
-    @PutMapping("/frontend/user/editPwd")
+    // 修改密码
+    @PostMapping("/frontend/user/editPwd")
     public ApiResponse<Void> editPwd(@RequestParam Long id, @RequestParam String oldPassword,@RequestParam String newPassword) {
         User user = userService.getById(id);
         if (user != null && user.getPassword().equals(oldPassword)) {
@@ -93,7 +97,8 @@ public class UserController {
         }
     }
 
-    @PutMapping("/frontend/user/setPrivacy")
+    // 设置隐私
+    @PostMapping("/frontend/user/setPrivacy")
     public ApiResponse<Void> setPrivacy(
             @RequestParam Long id,
             @RequestParam int showPosts,
@@ -114,6 +119,7 @@ public class UserController {
         }
     }
 
+    // 后台获取用户信息
     @GetMapping("/backend/user/detail")
     public ApiResponse<User> getUser(@RequestParam Long id){
         User user = userService.getById(id);
@@ -124,15 +130,19 @@ public class UserController {
         }
     }
 
+    // 后台获取用户列表
     @GetMapping("/backend/user/list")
     public ApiResponse<PageInfo<User>> getUserList(@RequestParam int page, @RequestParam int size){
         PageHelper.startPage(page, size);
         List<User> userList = userService.list();
         PageInfo<User> pageInfo = new PageInfo<>(userList);
+        PageHelper.clearPage();
         return ApiResponse.success(pageInfo);
 
     }
-    @DeleteMapping("/backend/user/delete")
+
+    // 后台删除用户
+    @PostMapping("/backend/user/delete")
     public ApiResponse<Void> deleteUser(@RequestParam Long id){
         userService.removeById(id);
         return ApiResponse.success();

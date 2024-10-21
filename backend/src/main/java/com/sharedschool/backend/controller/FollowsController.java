@@ -8,11 +8,7 @@ import com.sharedschool.backend.response.ApiResponse;
 import com.sharedschool.backend.service.FollowsService;
 import com.sharedschool.backend.service.UserService;
 import jakarta.annotation.Resource;
-import lombok.Data;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -24,18 +20,21 @@ public class FollowsController {
     @Resource
     private UserService userService;
 
+    // 获取关注列表
     @GetMapping("/frontend/user/likes")
     public ApiResponse<List<FollowsInfo>> getLikesList(@RequestParam Long userId){
         List<FollowsInfo> likesList = followsService.getLikesList(userId);
         return ApiResponse.success(likesList);
     }
 
+    // 获取粉丝列表
     @GetMapping("/frontend/user/fans")
     public ApiResponse<List<FollowsInfo>> getFansList(@RequestParam Long userId) {
         List<FollowsInfo> followsList = followsService.getFansList(userId);
         return ApiResponse.success(followsList);
     }
 
+    // 关注/取消关注用户
     @PostMapping("/frontend/user/follow")
     public ApiResponse<Void> followUser(
             @RequestParam Long focusId,

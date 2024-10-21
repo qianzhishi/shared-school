@@ -23,9 +23,6 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> success() {
         return new ApiResponse<>(ResponseCode.SUCCESS.getCode());
     }
-    public static <T> ApiResponse<T> success(String message) {
-        return new ApiResponse<>(ResponseCode.SUCCESS.getCode(), message);
-    }
     public static <T> ApiResponse<T> success(T data) {
         return new ApiResponse<>(ResponseCode.SUCCESS.getCode(), ResponseCode.SUCCESS.getMessage(), data);
     }
@@ -34,9 +31,6 @@ public class ApiResponse<T> {
     }
     public static <T> ApiResponse<T> fail(String message) {
         return new ApiResponse<>(ResponseCode.ERROR.getCode(), message);
-    }
-    public static <T> ApiResponse<T> fail(ResponseCode responseCode) {
-        return new ApiResponse<>(responseCode.getCode(), responseCode.getMessage());
     }
     public static <T> ApiResponse<T> fail(int code, String message) {
         return new ApiResponse<>(code, message);

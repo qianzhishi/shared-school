@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.extension.handlers.FastjsonTypeHandler;
 import com.sharedschool.backend.typehandler.ListTypeHandler;
 import lombok.Data;
 import java.util.Date;
@@ -22,7 +21,7 @@ public class Card {
     private int type;
     @TableField("card_title")
     private String title;
-    @TableField(value = "card_content",typeHandler = FastjsonTypeHandler.class)
+    @TableField(value = "card_content")
     public String content;
     @TableField("card_date")
     private Date date;

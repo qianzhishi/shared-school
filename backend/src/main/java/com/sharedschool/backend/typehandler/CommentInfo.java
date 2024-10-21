@@ -14,5 +14,5 @@ public class CommentInfo {
     private String content;
     private Long likeNum;
     private Date time;
-    private int likeFlag;
+    private int likeFlag = 0;
 }

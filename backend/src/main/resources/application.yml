@@ -25,6 +25,10 @@ spring:
       test-on-borrow: true
       # 是否在归还时验证连接
       test-on-return: false
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
 mybatis-plus:
   configuration:
     # MyBatis 配置

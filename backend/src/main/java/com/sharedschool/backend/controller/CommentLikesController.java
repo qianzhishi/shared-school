@@ -22,6 +22,7 @@ public class CommentLikesController {
     @Resource
     private UserService userService;
 
+    // 点赞/取消点赞评论
     @PostMapping("/frontend/content/likeComment")
     public ApiResponse<Long> likeComment(
             @RequestParam Long commentId,

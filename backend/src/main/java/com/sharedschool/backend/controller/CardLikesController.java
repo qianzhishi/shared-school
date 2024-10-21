@@ -1,6 +1,4 @@
 package com.sharedschool.backend.controller;
-
-
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.sharedschool.backend.entity.Card;
 import com.sharedschool.backend.entity.CardLikes;
@@ -25,6 +23,7 @@ public class CardLikesController {
     @Resource
     private UserService userService;
 
+    // 点赞/取消点赞帖子
     @PostMapping("/frontend/content/likePost")
     public ApiResponse<Long> likeCard(
             @RequestParam Long cardId,

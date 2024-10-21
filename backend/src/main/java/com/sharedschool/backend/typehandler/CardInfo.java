@@ -13,6 +13,7 @@ public class CardInfo {
     private String avatar;
     private String title;
     public String content;
+    private List<String> images = null;
     private Date time;
     private Long viewNum;
     private Long likeNum;
