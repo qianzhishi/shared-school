@@ -50,5 +50,22 @@ public interface CommentMapper extends BaseMapper<Comment> {
             @Result(column = "likeFlag", property = "likeFlag")
     })
     List<CommentInfo> getCommentListByFatherId(@Param("visitorId") Long visitorId, @Param("fatherId") Long fatherId, @Param("type") int type);
+
+    @Select("SELECT " +
+            "c.comment_id, c.user_id, c.comment_content, c.comment_date, c.like_number, c.father_id, " +
+            "u.user_name, u.user_avatar " +
+            "FROM comments c " +
+            "LEFT JOIN users u ON c.user_id = u.user_id ")
+    @Results({
+            @Result(column = "comment_id", property = "commentId"),
+            @Result(column = "user_id", property = "userId"),
+            @Result(column = "comment_content", property = "content"),
+            @Result(column = "comment_date", property = "time"),
+            @Result(column = "like_number", property = "likeNum"),
+            @Result(column = "father_id", property = "fatherId"),
+            @Result(column = "user_name", property = "name"),
+            @Result(column = "user_avatar", property = "avatar"),
+    })
+    List<CommentInfo> getList();
 }
 

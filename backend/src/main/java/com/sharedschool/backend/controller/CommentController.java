@@ -1,8 +1,11 @@
 package com.sharedschool.backend.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import com.sharedschool.backend.entity.Card;
 import com.sharedschool.backend.entity.Comment;
+import com.sharedschool.backend.entity.User;
 import com.sharedschool.backend.response.ApiResponse;
 import com.sharedschool.backend.service.CardService;
 import com.sharedschool.backend.service.CommentService;
@@ -43,6 +46,19 @@ public class CommentController {
             @RequestParam int type
     ) {
         return ApiResponse.success(commentService.getCommentListByFatherId(visitorId,fatherId,type));
+    }
+
+    // 后台获取评论列表
+    @GetMapping("/backend/commentList")
+    public ApiResponse<PageInfo<CommentInfo>> getCommentList(
+            @RequestParam int page,
+            @RequestParam int size
+    ) {
+        PageHelper.startPage(page, size);
+        List<CommentInfo> commentList = commentService.getList();
+        PageInfo<CommentInfo> pageInfo = new PageInfo<>(commentList);
+        PageHelper.clearPage();
+        return ApiResponse.success(pageInfo);
     }
 
 

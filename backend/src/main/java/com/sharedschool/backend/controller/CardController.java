@@ -35,43 +35,18 @@ public class CardController {
     private UserService userService;
 
     // 后台获取帖子列表
-    @GetMapping("/backend/upload/list")
-    public ApiResponse<PageInfo<Card>> getCardList(
+    @GetMapping("/backend/cardList")
+    public ApiResponse<PageInfo<CardInfo>> getCardList(
             @RequestParam int page,
             @RequestParam int size,
             @RequestParam int type) {
         PageHelper.startPage(page, size);
         //type: 0-代表帖子全部类型 1-学习 2-娱乐 3-表白
-        QueryWrapper<Card> queryWrapper = new QueryWrapper<>();
-        if (type == 0) {
-            List<Card>cardList = cardService.list();
-            PageInfo<Card> pageInfo = new PageInfo<>(cardList);
-            PageHelper.clearPage();
-            return ApiResponse.success(pageInfo);
-        }
-        else if (type == 1) {
-            queryWrapper.eq("card_type", 1);
-            List<Card>cardList = cardService.list(queryWrapper);
-            PageInfo<Card> pageInfo = new PageInfo<>(cardList);
-            PageHelper.clearPage();
-            return ApiResponse.success(pageInfo);
-        }
-        else if (type == 2) {
-            queryWrapper.eq("card_type", 2);
-            List<Card>cardList = cardService.list(queryWrapper);
-            PageInfo<Card> pageInfo = new PageInfo<>(cardList);
-            PageHelper.clearPage();
-            return ApiResponse.success(pageInfo);
-        }
-        else if (type == 3) {
-            queryWrapper.eq("card_type", 3);
-            List<Card>cardList = cardService.list(queryWrapper);
-            PageInfo<Card> pageInfo = new PageInfo<>(cardList);
-            PageHelper.clearPage();
-            return ApiResponse.success(pageInfo);
-        }
+        PageHelper.startPage(page,size);
+        List<CardInfo> cardList = cardService.getCardList(type);
+        PageInfo<CardInfo> pageInfo = new PageInfo<>(cardList);
         PageHelper.clearPage();
-        return ApiResponse.fail();
+        return ApiResponse.success(pageInfo);
     }
 
     // 主页获取帖子内容列表

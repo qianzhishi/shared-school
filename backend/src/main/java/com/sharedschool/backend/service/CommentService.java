@@ -10,4 +10,5 @@ import java.util.List;
 public interface CommentService extends IService<Comment> {
     List<CommentInfo> getCommentList(Long visitorId,Long visitedId,int type);
     List<CommentInfo> getCommentListByFatherId(Long visitorId,Long fatherId,int type);
+    List<CommentInfo> getList();
 }

@@ -118,4 +118,28 @@ public interface CardMapper extends BaseMapper<Card> {
     })
     List<CardInfo> selectFollowedCards(@Param("userId") Long userId);
 
+    @Select({
+            "SELECT "+
+            "c.*, "+
+            "u.user_name, "+
+            "u.user_avatar "+
+            "FROM card c "+
+            "LEFT JOIN users u ON c.user_id = u.user_id "+
+            "WHERE (#{type} = 0 OR c.card_type = #{type}) "})
+    @Results({
+            @Result(column = "card_id", property = "cardId"),
+            @Result(column = "user_id", property = "userId"),
+            @Result(column = "card_type", property = "type"),
+            @Result(column = "card_title", property = "title"),
+            @Result(column = "card_content", property = "content"),
+            @Result(column = "card_date", property = "time"),
+            @Result(column = "card_images", property = "images"),
+            @Result(column = "card_view_number", property = "viewNum"),
+            @Result(column = "card_like_number", property = "likeNum"),
+            @Result(column = "card_comment_number", property = "commentNum"),
+            @Result(column = "user_name", property = "name"),
+            @Result(column = "user_avatar", property = "avatar"),
+    })
+    List<CardInfo> getCardList(@Param("type") int type);
+
 }

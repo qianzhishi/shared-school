@@ -31,4 +31,9 @@ public class CardServiceImpl extends ServiceImpl<CardMapper, Card> implements Ca
         return baseMapper.selectFollowedCards(userId);
     }
 
+    @Override
+    public List<CardInfo> getCardList(int type) {
+        return baseMapper.getCardList(type);
+    }
+
 }

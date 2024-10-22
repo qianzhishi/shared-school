@@ -20,4 +20,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     public List<CommentInfo> getCommentListByFatherId(Long visitorId,Long fatherId,int type) {
         return baseMapper.getCommentListByFatherId(visitorId,fatherId,type);
     }
+
+    @Override
+    public List<CommentInfo> getList() {
+        return baseMapper.getList();
+    }
 }

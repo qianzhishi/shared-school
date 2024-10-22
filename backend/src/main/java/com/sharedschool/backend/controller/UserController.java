@@ -21,7 +21,7 @@ public class UserController {
 
     // 登录
     @GetMapping("/frontend/system/login")
-    public ApiResponse<String> login(@RequestParam Long id, @RequestParam String password){
+    public ApiResponse<String> login(@RequestParam Long id, @RequestParam String password) {
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("user_id", id);
         queryWrapper.eq("user_password", password);
@@ -36,7 +36,11 @@ public class UserController {
     // 获取用户信息
     @GetMapping("/frontend/user/info")
     public ApiResponse<User> getUserInfo(@RequestParam Long id){
+        // 判断是否存在该用户
         User user = userService.getById(id);
+        if (user == null) {
+            return ApiResponse.fail("未查询到该用户");
+        }
         return ApiResponse.success(user);
     }
 
@@ -131,7 +135,7 @@ public class UserController {
     }
 
     // 后台获取用户列表
-    @GetMapping("/backend/user/list")
+    @GetMapping("/backend/userList")
     public ApiResponse<PageInfo<User>> getUserList(@RequestParam int page, @RequestParam int size){
         PageHelper.startPage(page, size);
         List<User> userList = userService.list();
@@ -142,7 +146,7 @@ public class UserController {
     }
 
     // 后台删除用户
-    @PostMapping("/backend/user/delete")
+    @PostMapping("/backend/delUser")
     public ApiResponse<Void> deleteUser(@RequestParam Long id){
         userService.removeById(id);
         return ApiResponse.success();
