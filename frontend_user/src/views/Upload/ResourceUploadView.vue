@@ -103,8 +103,6 @@
     }
 
     async function submitUpload(){
-        const names = files.value.map(item => item.name);
-        console.log(names);
         if (fullPath.value === '') {
             ElMessage.warning('未选择路径');
         }else{                        

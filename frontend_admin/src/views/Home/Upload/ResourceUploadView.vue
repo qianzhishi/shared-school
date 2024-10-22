@@ -1,10 +1,8 @@
 <script lang="ts" setup>
     import { onMounted, ref } from 'vue';
-    import { useRouter } from 'vue-router'
-    import { Download, Back, Refresh, DArrowRight } from '@element-plus/icons-vue';
-    import { ElMessage, ElMessageBox } from 'element-plus'
-    import api from '@/api/upload'
-
+    import { DeleteFilled, Back, Refresh, DArrowRight } from '@element-plus/icons-vue';
+    import { ElMessage } from 'element-plus'
+    import api from '@/api/system';
 
     interface Folder {
         pathPreFix: string;
@@ -22,23 +20,16 @@
         authorId: number;
     }
 
+
     const defaultProps = {
         children: 'children',
         label: 'name',
     }
 
-
     const filePathList = ref<string[]>([]);
-
-    // 路由
-    const router = useRouter();
-
-    //获得户信息
-    const store = window.localStorage;
-
-    const routerData= ref<Folder[]>([]);
+    const routerData = ref<Folder[]>([]);
     const path = ref<any[]>([]);
-    const paths= ref<any[]>([]);
+    const paths = ref<any[]>([]);
     const routerlist = ref<Folder[]| null>([]);
     const filelist = ref<any[]>([]);
     const tableData = ref<any[]>([]);
@@ -78,7 +69,7 @@
             }
         });
         return root;
-    }   
+    }
 
     function setbread(data:any[], o:object[]){
         data.forEach((item:any) =>{
@@ -104,8 +95,8 @@
 
     }
 
-    function refresh(){
-        const now = path.value[path.value.length-1];
+    function refresh() {
+        const now = path.value[path.value.length - 1];
         setlist(now);
     }
 
@@ -115,38 +106,30 @@
         tableData.value = routerData.value ? routerData.value.map((obj:any) => ({...obj, type: '文件夹'})) : [];
     }
 
-    function toPath(item:any){
+    function toPath(item: any) {
         setlist(item);
     }
 
-    function handleNodeClick(data: any){
+    function handleNodeClick(data: any) {
         setlist(data);
     }
 
-    async function download(row: any) {
-        api.downloadFileApi({objectName:row.pathUrl})
+    async function remove(row: any) {
+        await api.delResourceApi({ filePath: row.pathUrl })
             .then((res: any) => {
-                console.log(res);
-                const fileUrl = window.URL.createObjectURL(new Blob([res]))
-                const link = document.createElement('a')
-                link.href = fileUrl
-                link.setAttribute('download', decodeURIComponent(row.name))
-                document.body.appendChild(link)
-                link.click()
-                window.URL.revokeObjectURL(fileUrl)
-                document.body.removeChild(link)
+                if (res.code == 200) {
+                    ElMessage.success(row.name + '成功删除');
+                    refresh();
+                }
             })
     }
 
-
-
-
-    function changeList(data: any){
+    function changeList(data: any) {
         //console.log(data);
-        if(data.type === '文件夹'){
+        if (data.type === '文件夹') {
             setlist(data);
         }
-}
+    }
 
 async function setlist(data: any) {
         // 确保 routerList.value 不是 null
@@ -168,6 +151,7 @@ async function setlist(data: any) {
                     else {
                         filelist.value = [];
                     }
+                        
                 }
             })
         if (routerlist.value == null)
@@ -177,33 +161,8 @@ async function setlist(data: any) {
         hasFile.value = tableData.value.length > 0;
     }
 
-    function toUplode(){
-        if(store.isLogin === 'false'){
-            ElMessageBox.confirm(
-                '没登录不能投稿哦，快去登录吧',
-                'Warning',
-                {
-                  confirmButtonText: '登录',
-                  cancelButtonText: '取消',
-                  type: 'warning',
-                }
-            )
-            .then(() => {
-                router.push('/login');
-            })
-            .catch(() => {
-                ElMessage({
-                    type: 'warning',
-                    message: '记得登录哦亲~~~',
-                })
-            })
-        }else{
-           router.push('/upload'); 
-        }
-    }
-
     onMounted(async ()=>{
-        api.getFileListApi()
+        await api.getFileListApi()
         .then((res:any)=>{
             if(res.code == 200)
             {
@@ -221,95 +180,97 @@ async function setlist(data: any) {
 </script>
 
 <template>
-  <div class="resource-head">
-      <div class="resource-head-button">
-          <el-button type="primary" :icon="Back" @click="back"/>
-          <el-button type="primary" :icon="Refresh" @click="refresh"/>
-      </div>
+    <div class="resource-head">
+        <div class="resource-head-button">
+            <el-button type="primary" :icon="Back" @click="back" />
+            <el-button type="primary" :icon="Refresh" @click="refresh" />
+        </div>
 
-      <div class="resource-head-bread">
-          <div class="head-breadcrumb-border">
-              <div class="head-breadcrumb">
-                  <el-scrollbar >
-                      <div class="head-breadcrumb">
-                          <el-button link @click="toHome" style="height: 5vh;">HOME</el-button> 
-                          <el-button v-for="(item, index) in path" link @click="toPath(item)">
-                              <el-icon><DArrowRight /></el-icon>
-                              {{item.name}}
-                          </el-button>
-                      </div>
-                  </el-scrollbar>
-              </div>
-          </div>
-      </div>
+        <div class="resource-head-bread">
+            <div class="head-breadcrumb-border">
+                <div class="head-breadcrumb">
+                    <el-scrollbar>
+                        <div class="head-breadcrumb">
+                            <el-button link @click="toHome" style="height: 5vh;">HOME</el-button>
+                            <el-button v-for="(item, index) in path" link @click="toPath(item)">
+                                <el-icon>
+                                    <DArrowRight />
+                                </el-icon>
+                                {{ item.name }}
+                            </el-button>
+                        </div>
+                    </el-scrollbar>
+                </div>
+            </div>
+        </div>
 
-      <div class="resource-head-search">
-          
-      </div>
+        <div class="resource-head-search">
+
+        </div>
     </div>
 
-  <div class="resource">
-      <div class="selector">
-          <el-tree
-          style="font-size: 100%;"
-          :data="routerData"
-          :props="defaultProps"
-          @node-click="handleNodeClick"
-          />
-      </div>
-      <div class="select-content">
+    <div class="resource">
+        <div class="selector">
+            <el-tree style="font-size: 100%;" :data="routerData" :props="defaultProps" @node-click="handleNodeClick" />
+        </div>
+        <div class="select-content">
             <div v-if="hasFile" style="width: 100%;">
-              <el-table :data="tableData" 
-                      style="width: 100%; height: 70vh; border-bottom-right-radius:1vh; border-bottom:0.3vh solid; border-color: gray;"
-                      @row-dblclick="changeList"
-              >
-                  <el-table-column fixed prop="name" label="名称" style="width: 40%;" />
-                  <el-table-column prop="type" label="类型" style="width: 30%;" />
-                  <el-table-column prop="date" label="时间" style="width: 30%;" />
-                  <el-table-column prop="author" label="作者" style="width: 30%;" />
-                  <el-table-column fixed="right" label="操作" style="width: 30%;">
-                      <template #default="scope" >
-                          <el-button v-if="scope.row.type != '文件夹'" type="primary" :icon="Download" size="small" @click="download(scope.row)" />
-                      </template>
-                  </el-table-column>
-              </el-table>
+                <el-table :data="tableData" style="width: 100%; height: 69.5vh; border-bottom-right-radius:1vh;"
+                    @row-dblclick="changeList">
+                    <el-table-column fixed prop="name" label="名称" style="width: 40%;" />
+                    <el-table-column prop="type" label="类型" style="width: 30%;" />
+                    <el-table-column prop="date" label="时间" style="width: 30%;" />
+                    <el-table-column prop="author" label="作者" style="width: 30%;" />
+                    <el-table-column fixed="right" label="操作" style="width: 30%;">
+                        <template #default="scope">
+                            <el-button v-if="scope.row.type != '文件夹'" type="primary" :icon="DeleteFilled" size="small"
+                                @click="remove(scope.row)" />
+                        </template>
+                    </el-table-column>
+                </el-table>
             </div>
             <div v-if="!hasFile" style="width: 100%; position: relative;">
                 <el-empty description="暂无内容" style="min-height: 100%" />
             </div>
-      </div>
-  </div>
+        </div>
+    </div>
 </template>
 
 <style>
-    .resource-head{
+    .resource-head {
         display: flex;
         width: 100%;
         height: 7vh;
+        border: 0.3vh solid;
         border-bottom: 0.15vh solid;
-        border-top-left-radius:1vh;
-        border-top-right-radius:1vh;
+        border-top-left-radius: 1vh;
+        border-top-right-radius: 1vh;
         border-color: gray;
         background-color: white;
     }
 
-    .resource-head-button{
+    .resource-head-button {
         width: 20%;
         height: 100%;
         display: flex;
-        justify-content: center; /* 水平居中 */
-        align-items: center; /* 垂直居中 */
+        justify-content: center;
+        /* 水平居中 */
+        align-items: center;
+        /* 垂直居中 */
     }
 
-    .resource-head-bread{
+    .resource-head-bread {
         width: 60%;
         height: 100%;
         padding: 0.5vh;
         display: flex;
-        justify-content: center; /* 水平居中 */
-        align-items: center; /* 垂直居中 */
+        justify-content: center;
+        /* 水平居中 */
+        align-items: center;
+        /* 垂直居中 */
     }
-    .head-breadcrumb-border{
+
+    .head-breadcrumb-border {
         width: 100%;
         height: 100%;
         border: 1px solid;
@@ -317,33 +278,40 @@ async function setlist(data: any) {
         border-radius: 5vh;
         padding: 0 2.5vh;
         display: flex;
-        justify-content: center; /* 水平居中 */
-        align-items: center; /* 垂直居中 */
+        justify-content: center;
+        /* 水平居中 */
+        align-items: center;
+        /* 垂直居中 */
     }
 
-    .head-breadcrumb{
+    .head-breadcrumb {
         width: 100%;
         height: 100%;
         display: flex;
-        justify-content: left; /* 水平靠左 */
-        align-items: center; /* 垂直居中 */
+        justify-content: left;
+        /* 水平靠左 */
+        align-items: center;
+        /* 垂直居中 */
     }
 
-    .resource-head-search{
+    .resource-head-search {
         width: 20%;
         height: 100%;
         display: flex;
-        justify-content: center; /* 水平居中 */
-        align-items: center; /* 垂直居中 */
+        justify-content: center;
+        /* 水平居中 */
+        align-items: center;
+        /* 垂直居中 */
     }
 
     .resource {
         display: flex;
         width: 100%;
         height: 70vh;
+        border: 0.3vh solid;
         border-top: 0.15vh solid;
-        border-bottom-left-radius:1vh;
-        border-bottom-right-radius:1vh;
+        border-bottom-left-radius: 1vh;
+        border-bottom-right-radius: 1vh;
         border-color: gray;
         background-color: white;
     }
@@ -352,8 +320,8 @@ async function setlist(data: any) {
         width: 20%;
         overflow-y: scroll;
         padding: 0.5vh 0.1vw;
-        border-right:0.1vw solid;
-        border-bottom-left-radius:1vh;
+        border-right: 0.1vw solid;
+        border-bottom-left-radius: 1vh;
         border-color: lightgrey;
         background-color: white;
     }
@@ -361,8 +329,9 @@ async function setlist(data: any) {
     .select-content {
         width: 80%;
         display: flex;
-        border-bottom-right-radius:1vh;
-        justify-content: center; /* 水平居中 */
+        border-bottom-right-radius: 1vh;
+        justify-content: center;
+        /* 水平居中 */
         background-color: white;
     }
 </style>
